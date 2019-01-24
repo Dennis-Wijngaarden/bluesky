@@ -234,7 +234,7 @@ class Traffic(TrafficArrays):
         # Names of aircraft (acid) need to be recorded for saved future commands
         # And positions need to be the same in case of *MCRE"
 
-        if type(aclat)==float or type(aclat)==int:
+        if type(aclat)==float or type(aclat)==np.float64 or type(aclat)==int:
             bs.stack.savecmd(" ".join(["CRE", acid[0], actype[0],
                                        str(aclat), str(aclon), str(int(round(achdg))),
                                        str(int(round(acalt/ft))),
