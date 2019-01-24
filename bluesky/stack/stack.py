@@ -454,6 +454,12 @@ def init(startup_scnfile):
             bs.sim.pause,
             "Pause(hold) simulation"
         ],
+        "HPZ": [
+            "HPZ acid, hpz (m)",
+            "acid,float",
+            bs.traf.setasasHPZ,
+            "set a custom defined horizontal protected zone radius for aircraft in m"
+        ],
         "IC": [
             "IC [IC/filename]",
             "[string]",
@@ -688,6 +694,12 @@ def init(startup_scnfile):
             bs.traf.ap.selspdcmd,
             "Speed command (autopilot)"
         ],
+        "SPDLIM": [
+            "SPDLIM acid, vmin, vmax (m/s)",
+            "acid,float,float",
+            bs.traf.setasasVlimits,
+            "Sets speed limits for ASAS for specific aircraft"
+        ],
         "SSD": [
             "SSD ALL/CONFLICTS/OFF or SSD acid0, acid1, ...",
             "txt,[...]",
@@ -737,6 +749,12 @@ def init(startup_scnfile):
             "acid,[onoff]",
             bs.traf.ap.setVNAV,
             "Switch on/off VNAV mode, the vertical FMS mode (autopilot)"
+        ],
+        "VPZ": [
+            "VPZ acid, vpz (m)",
+            "acid,float",
+            bs.traf.setasasVPZ,
+            "set a custom defined half vertical protected zone height for aircraft in m"
         ],
         "VS": [
             "VS acid,vspd (ft/min)",

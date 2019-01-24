@@ -118,6 +118,12 @@ class Traffic(TrafficArrays):
                 self.aptas  = np.array([])  # just for initializing
                 self.selalt = np.array([])  # selected alt[m]
                 self.selvs  = np.array([])  # selected vertical speed [m/s]
+                
+                # Custom asas protected zones horizontal range and half vertical height (Not set at creation)
+                self.asasHPZ = np.array([])
+                self.asasVPZ = np.array([])
+                self.asasVmin = np.array([])
+                self.asasVmax = np.array([])
 
             # Whether to perform LNAV and VNAV
             self.swlnav   = np.array([], dtype=np.bool)
@@ -301,6 +307,12 @@ class Traffic(TrafficArrays):
         # Miscallaneous
         self.coslat[-n:] = np.cos(np.radians(aclat))  # Cosine of latitude for flat-earth aproximations
         self.eps[-n:] = 0.01
+        
+        # Custom asas protected zones horizontal range and half vertical height (Not set at creation)
+        self.asasHPZ[-n:] = None
+        self.asasVPZ[-n:] = None
+        self.asasVmin[-n:] = None
+        self.asasVmax[-n:] = None
 
         # Finally call create for child TrafficArrays. This only needs to be done
         # manually in Traffic.
@@ -745,3 +757,16 @@ class Traffic(TrafficArrays):
             tlvl = int(round(self.translvl/ft))
             return True,"Transition level = " + \
                           str(tlvl) + "/FL" +  str(int(round(tlvl/100.)))
+    
+    def setasasHPZ(self, idx, hpz):
+        """ Set a custom horizontal protected zone for ASAS in m"""
+        self.asasHPZ[idx] = hpz
+        
+    def setasasVPZ(self, idx, vpz):
+        """ Set a custom vertical protected zone for ASAS in m"""
+        self.asasVPZ[idx] = vpz
+        
+    def setasasVlimits(self, idx, vmin, vmax):
+        """ Set a custom minimum speed for ASAS in m/s"""
+        self.asasVmin[idx] = vmin
+        self.asasVmax[idx] = vmax
