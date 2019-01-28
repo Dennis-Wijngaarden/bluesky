@@ -31,6 +31,7 @@ from . import Eby
 from . import MVP
 from . import Swarm
 from . import SSD
+from . import SSDUAV
 
 
 class ASAS(TrafficArrays):
@@ -45,6 +46,7 @@ class ASAS(TrafficArrays):
     # If pyclipper is installed add it to CRmethods-dict
     if SSD.loaded_pyclipper():
         CRmethods["SSD"] = SSD
+        CRmethods["SSDUAV"] = SSDUAV
 
     @classmethod
     def addCDMethod(asas, name, module):
@@ -130,7 +132,12 @@ class ASAS(TrafficArrays):
         self.tLOS = np.array([])  # Time to start LoS
         self.qdr = np.array([])  # Bearing from ownship to intruder
         self.dist = np.array([])  # Horizontal distance between ""
-
+        
+        # Import specific CD&R settings for drone categories [1-3]
+        self.R_cat              = settings.asas_pzr_cat
+        self.dh_cat             = settings.asas_pzh_cat
+        self.dtlookahead_cat    = settings.asas_tla_cat
+        
     def toggle(self, flag=None):
         if flag is None:
             return True, "ASAS is currently " + ("ON" if self.swasas else "OFF")

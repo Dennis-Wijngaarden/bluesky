@@ -275,6 +275,12 @@ def init(startup_scnfile):
             calculator,
             "Simple in-line math calculator, evaluates expression"
         ],
+        "CATEGORY": [
+            "CATEGORY acid, category",
+            "acid, int",
+            bs.traf.setcustomcat,
+            "Sets a custom aircraft category"
+        ],
         "CD": [
             "CD [path]",
             "[txt]",
@@ -453,12 +459,6 @@ def init(startup_scnfile):
             "",
             bs.sim.pause,
             "Pause(hold) simulation"
-        ],
-        "HPZ": [
-            "HPZ acid, hpz (m)",
-            "acid,float",
-            bs.traf.setasasHPZ,
-            "set a custom defined horizontal protected zone radius for aircraft in m"
         ],
         "IC": [
             "IC [IC/filename]",
@@ -749,12 +749,6 @@ def init(startup_scnfile):
             "acid,[onoff]",
             bs.traf.ap.setVNAV,
             "Switch on/off VNAV mode, the vertical FMS mode (autopilot)"
-        ],
-        "VPZ": [
-            "VPZ acid, vpz (m)",
-            "acid,float",
-            bs.traf.setasasVPZ,
-            "set a custom defined half vertical protected zone height for aircraft in m"
         ],
         "VS": [
             "VS acid,vspd (ft/min)",

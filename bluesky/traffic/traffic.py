@@ -31,6 +31,11 @@ from bluesky import settings
 # Register settings defaults
 settings.set_variable_defaults(performance_model='openap', snapdt=1.0, instdt=1.0, skydt=1.0, asas_pzr=5.0, asas_pzh=1000.0)
 
+# Register specific CD&R settings for drone categories [1-3]
+settings.set_variable_defaults(asas_pzr_cat = [settings.asas_pzr, 50.0 / nm, 50.0 / nm, 50.0 / nm], \
+                               asas_pzh_cat = [settings.asas_pzh, 20.0 / ft, 20.0 / ft, 20.0 / ft], \
+                               asas_tla_cat = [300., 60.0, 60.0, 60.0])
+
 if settings.performance_model == 'bada':
     try:
         print('Using BADA Perfromance model')
@@ -119,11 +124,12 @@ class Traffic(TrafficArrays):
                 self.selalt = np.array([])  # selected alt[m]
                 self.selvs  = np.array([])  # selected vertical speed [m/s]
                 
-                # Custom asas protected zones horizontal range and half vertical height (Not set at creation)
-                self.asasHPZ = np.array([])
-                self.asasVPZ = np.array([])
+                # Custom asas category
+                self.cat = np.array([], dtype=np.int) # Set to standard possibilities [0,1,2.3]
                 self.asasVmin = np.array([])
-                self.asasVmax = np.array([])
+                self.asasVmax  = np.array([])
+                self.asasVsmin = np.array([])
+                self.asasVsmax = np.array([])
 
             # Whether to perform LNAV and VNAV
             self.swlnav   = np.array([], dtype=np.bool)
@@ -309,10 +315,11 @@ class Traffic(TrafficArrays):
         self.eps[-n:] = 0.01
         
         # Custom asas protected zones horizontal range and half vertical height (Not set at creation)
-        self.asasHPZ[-n:] = None
-        self.asasVPZ[-n:] = None
-        self.asasVmin[-n:] = None
-        self.asasVmax[-n:] = None
+        self.cat[-n:]       = np.zeros(n, dtype=np.int)
+        self.asasVmin[-n:]  = np.zeros(n, dtype=np.float64)
+        self.asasVmax[-n:]  = np.zeros(n, dtype=np.float64)
+        self.asasVsmin[-n:] = np.zeros(n, dtype=np.float64)
+        self.asasVsmax[-n:] = np.zeros(n, dtype=np.float64)
 
         # Finally call create for child TrafficArrays. This only needs to be done
         # manually in Traffic.
@@ -758,13 +765,12 @@ class Traffic(TrafficArrays):
             return True,"Transition level = " + \
                           str(tlvl) + "/FL" +  str(int(round(tlvl/100.)))
     
-    def setasasHPZ(self, idx, hpz):
-        """ Set a custom horizontal protected zone for ASAS in m"""
-        self.asasHPZ[idx] = hpz
-        
-    def setasasVPZ(self, idx, vpz):
-        """ Set a custom vertical protected zone for ASAS in m"""
-        self.asasVPZ[idx] = vpz
+    def setcustomcat(self, idx, cat):
+        if (cat == 0 or cat == 1 or cat == 2 or cat == 3):
+            self.cat[idx] = int(cat)
+            return True
+        else:
+            return False,"No valid priority category. [0-3] are valid"
         
     def setasasVlimits(self, idx, vmin, vmax):
         """ Set a custom minimum speed for ASAS in m/s"""
