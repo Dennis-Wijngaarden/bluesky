@@ -81,7 +81,7 @@ def initializeSSD(asas, ntraf):
     # For calculation purposes
     asas.ARV_calc     = [None] * ntraf
     asas.inrange      = [None] * ntraf
-    asas.inconf       = np.zeros(ntraf, dtype=bool)
+    #asas.inconf       = np.zeros(ntraf, dtype=bool) Commented out as it overwrites already generated asas.inconf
     # Index 2 for sequential solutions (RS7, RS8)
     asas.ARV_calc2    = [None] * ntraf
     asas.inrange2     = [None] * ntraf
