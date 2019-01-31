@@ -24,6 +24,8 @@ import bluesky as bs
 from bluesky.tools import geo, areafilter, plugin, plotter
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
 from bluesky.tools.misc import txt2alt, tim2txt, cmdsplit
+from bluesky.tools import varexplorer as ve
+from bluesky.tools import datalog
 from bluesky.tools.calculator import calculator
 from bluesky.tools.position import txt2pos, islat
 from bluesky import settings
@@ -312,6 +314,12 @@ def init(startup_scnfile):
             bs.traf.creconfs,
             "Create an aircraft that is in conflict with 'targetid'"
         ],
+        "CRELOG": [
+            "CRELOG LOGNAME, [dt,header]",
+            "txt,[float,string]",
+            datalog.crelog,
+            "Create a new data logger."
+        ],
         "DATE": [
             "DATE [day,month,year,HH:MM:SS.hh]",
             "[int,int,int,txt]",
@@ -489,6 +497,12 @@ def init(startup_scnfile):
             "acid,[onoff]",
             bs.traf.ap.setLNAV,
             "LNAV (lateral FMS mode) switch for autopilot"
+        ],
+        "LSVAR": [
+            "LSVAR path.to.variable",
+            "[string]",
+            ve.lsvar,
+            "Inspect any variable in a bluesky simulation"
         ],
         "MAKEDOC": [
             "MAKEDOC",
