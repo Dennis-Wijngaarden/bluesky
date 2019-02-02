@@ -66,7 +66,7 @@ VCOUNT_PZ             = 36
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = list(range(7))
-ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1, ATTRIB_ASASN, ATTRIB_ASASE = list(range(13))
+ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1, ATTRIB_ASASN, ATTRIB_ASASE, ATTRIB_ASAS0, ATTRIB_ASAS1 = list(range(15))
 
 # Qt smaller than 5.6.2 needs a different approach to pinch gestures
 CORRECT_PINCH = False
@@ -251,6 +251,7 @@ class RadarWidget(QGLWidget):
         self.trailbuf = create_empty_buffer(MAX_TRAILLEN * 16, usage=gl.GL_STREAM_DRAW)
         self.asasnbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.asasebuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.acasasbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
 
         self.polyprevbuf = create_empty_buffer(MAX_POLYPREV_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.allpolysbuf = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 16, usage=gl.GL_DYNAMIC_DRAW)
@@ -302,6 +303,8 @@ class RadarWidget(QGLWidget):
         self.ssd.bind_attrib(ATTRIB_TRK1, 1, self.achdgbuf)
         self.ssd.bind_attrib(ATTRIB_ASASN, 1, self.asasnbuf, instance_divisor=1)
         self.ssd.bind_attrib(ATTRIB_ASASE, 1, self.asasebuf, instance_divisor=1)
+        self.ssd.bind_attrib(ATTRIB_ASAS0, 4, self.acasasbuf, instance_divisor=1)
+        self.ssd.bind_attrib(ATTRIB_ASAS1, 4, self.acasasbuf)
 
         # ------- Protected Zone -------------------------
         circlevertices = np.transpose(np.array((2.5 * nm * np.cos(np.linspace(0.0, 2.0 * np.pi, VCOUNT_PZ)), 2.5 * nm * np.sin(np.linspace(0.0, 2.0 * np.pi, VCOUNT_PZ))), dtype=np.float32))
@@ -715,6 +718,10 @@ class RadarWidget(QGLWidget):
             update_buffer(self.actasbuf, np.array(data.tas[:MAX_NAIRCRAFT], dtype=np.float32))
             update_buffer(self.asasnbuf, np.array(data.asasn[:MAX_NAIRCRAFT], dtype=np.float32))
             update_buffer(self.asasebuf, np.array(data.asase[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.acasasbuf, np.concatenate(np.transpose(np.array([np.array(data.pzr[:MAX_NAIRCRAFT], dtype=np.float32), \
+                                                                             np.array(data.Vmin[:MAX_NAIRCRAFT], dtype=np.float32)**2, \
+                                                                             np.array(data.Vmax[:MAX_NAIRCRAFT], dtype=np.float32)**2, \
+                                                                             np.array(data.Vmax[:MAX_NAIRCRAFT], dtype=np.float32)])), axis=0))
 
             # CPA lines to indicate conflicts
             ncpalines = np.count_nonzero(data.inconf)

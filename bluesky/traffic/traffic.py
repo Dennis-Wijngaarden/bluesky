@@ -115,12 +115,14 @@ class Traffic(TrafficArrays):
             self.selalt = np.array([])  # selected alt[m]
             self.selvs  = np.array([])  # selected vertical speed [m/s]
 
-	    # Custom asas category
+	        # Custom asas category
             self.cat = np.array([], dtype=np.int) # Set to standard possibilities [0,1,2.3]
-            self.asasVmin = np.array([])
-            self.asasVmax  = np.array([])
-            self.asasVsmin = np.array([])
-            self.asasVsmax = np.array([])
+            self.pzr = np.array([])
+            self.pzh = np.array([])
+            self.Vmin = np.array([])
+            self.Vmax  = np.array([])
+            self.Vsmin = np.array([])
+            self.Vsmax = np.array([])
 
             # Whether to perform LNAV and VNAV
             self.swlnav   = np.array([], dtype=np.bool)
@@ -307,10 +309,12 @@ class Traffic(TrafficArrays):
         
         # Custom asas protected zones horizontal range and half vertical height (Not set at creation)
         self.cat[-n:]       = np.zeros(n, dtype=np.int)
-        self.asasVmin[-n:]  = np.zeros(n, dtype=np.float64)
-        self.asasVmax[-n:]  = np.zeros(n, dtype=np.float64)
-        self.asasVsmin[-n:] = np.zeros(n, dtype=np.float64)
-        self.asasVsmax[-n:] = np.zeros(n, dtype=np.float64)
+        self.pzr[-n:]       = np.ones(n, dtype=np.float64) * settings.asas_pzr_cat[0]
+        self.pzh[-n:]       = np.ones(n, dtype=np.float64) * settings.asas_pzh_cat[0]
+        self.Vmin[-n:]      = np.ones(n, dtype=np.float64) * settings.asas_vmin * nm / 3600. # to m/s
+        self.Vmax[-n:]      = np.ones(n, dtype=np.float64) * settings.asas_vmax * nm / 3600. # to m/s
+        self.Vsmin[-n:]     = np.zeros(n, dtype=np.float64)
+        self.Vsmax[-n:]     = np.zeros(n, dtype=np.float64)
 
         # Finally call create for child TrafficArrays. This only needs to be done
         # manually in Traffic.
@@ -759,11 +763,13 @@ class Traffic(TrafficArrays):
     def setcustomcat(self, idx, cat):
         if (cat == 0 or cat == 1 or cat == 2 or cat == 3):
             self.cat[idx] = int(cat)
+            self.pzr[idx] = settings.asas_pzr_cat[cat]
+            self.pzh[idx] = settings.asas_pzh_cat[cat]
             return True
         else:
             return False,"No valid priority category. [0-3] are valid"
         
     def setasasVlimits(self, idx, vmin, vmax):
         """ Set a custom minimum speed for ASAS in m/s"""
-        self.asasVmin[idx] = vmin
-        self.asasVmax[idx] = vmax
+        self.Vmin[idx] = vmin
+        self.Vmax[idx] = vmax

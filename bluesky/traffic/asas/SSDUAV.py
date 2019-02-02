@@ -99,21 +99,9 @@ def constructSSD(asas, traf, priocode = "RS1"):
     N = 0
     # Parameters
     N_angle = 180                   # [-] Number of points on circle (discretization)
-    vmin    = np.zeros(traf.ntraf)  # [m/s] Defined in asas.py
-    vmax    = np.zeros(traf.ntraf)  # [m/s] Defined in asas.py
-    for i in range(traf.ntraf):
-        if traf.asasVmax[i] != 0.:
-            vmin[i] = traf.asasVmin[i]
-            vmax[i] = traf.asasVmax[i]
-        else:
-            vmin[i] = asas.vmin
-            vmax[i] = asas.vmax
-    hsep    = np.zeros(traf.ntraf)  # [m] Horizontal separation (5 NM)
-    for i in range(traf.ntraf):
-        if traf.cat[i] != 0:
-            hsep[i] = asas.R_cat[traf.cat[i]]
-        else:
-            hsep[i] = asas.R
+    vmin    = traf.Vmin             # [m/s] Defined in asas.py
+    vmax    = traf.Vmax             # [m/s] Defined in asas.py
+    hsep    = traf.pzr              # [m] Horizontal separation (5 NM)
     margin  = asas.mar              # [-] Safety margin for evasion
     hsepm   = hsep * margin         # [m] Horizontal separation with safety margin
     alpham  = 0.4999 * np.pi        # [rad] Maximum half-angle for VO
@@ -636,15 +624,8 @@ def minTLOS(asas, traf, i, i_other, x1, y1, x, y):
     # CPA distance
     dcpa2 = np.square(np.dot(dist.reshape((L,1)),np.ones((1,W)))) - np.square(tcpa) * vrel2
     # Calculate time to LOS
-    if traf.cat[i] != 0.:
-        hsep_i = asas.R_cat[traf.cat[i]]
-    else:
-        hsep_i = asas.R
-    if traf.cat[i_other] != 0.:
-        hsep_i_other = asas.R_cat[traf.cat[i]]
-    else:
-        hsep_i_other = asas.R
-        
+    hsep_i          = traf.rpz[i]
+    hsep_i_other    = traf.rpz[i_other]
     hsep = max(hsep_i, hsep_i_other)
     R2 = hsep * hsep
     swhorconf = dcpa2 < R2

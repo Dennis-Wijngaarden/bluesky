@@ -212,6 +212,11 @@ class ScreenIO(object):
         data['vmin']       = bs.traf.asas.vmin
         data['vmax']       = bs.traf.asas.vmax
 
+        # Custom defined ASAS variables for drone avoidance
+        data['pzr']    = bs.traf.pzr
+        data['Vmin']   = bs.traf.Vmin
+        data['Vmax']   = bs.traf.Vmax
+
         # Trails, send only new line segments to be added
         data['swtrails']  = bs.traf.trails.active
         data['traillat0'] = bs.traf.trails.newlat0

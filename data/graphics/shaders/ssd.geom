@@ -2,7 +2,7 @@
 #define R_EARTH 6378000
 #define NM2M 1853.184
 #define LOOKAHEAD_RANGE 2e5 // 200 km
-#define RPZ 9265 // 5 NM
+//#define rpz 9265 // 5 NM
 #define SSD_ALT_RANGE 304.8 // 1,000 ft
 #define VSCALE 0.4 // Display scale for SSD [ms-1 / GLXY]
 layout (points) in;
@@ -17,10 +17,13 @@ in GSData {
     int own_id;
     int int_id;
     int selssd;
+    vec4 asasown;
+    vec4 asasintruder;
 } gs_in[];
 
 out vec2 ssd_coord;
 out vec4 color_fs;
+out vec4 asasown_frag;
 
 // Vlimits is [Vmin^2, Vmax^2, Vmax]
 uniform vec3 Vlimits;
@@ -37,15 +40,15 @@ void intersect_vmax_box(in vec2 Vint, in vec2 n, out vec2 vertex, out int segmen
     float s = 0.0, s_tmp = 0.0;
     if (abs(n.y) > 1e-6) {
         // Segment 0: top edge:    a=[-Vmax, Vmax]  b=[1, 0] ==> den = -n.y
-        s_tmp = (Vlimits[2] - Vint.y) / n.y;
-        if (s_tmp > s && abs(Vint.x + n.x * s_tmp) <= Vlimits[2]) {
+        s_tmp = (gs_in[0].asasown[3] - Vint.y) / n.y;
+        if (s_tmp > s && abs(Vint.x + n.x * s_tmp) <= gs_in[0].asasown[3]) {
             segment = 0;
             s = s_tmp;
         }
 
         // Segment 2: bottom edge: a=[-Vmax, -Vmax] b=[1, 0] ==> den = -n.y
-        s_tmp = (-Vlimits[2] - Vint.y) / n.y;
-        if (s_tmp > s && abs(Vint.x + n.x * s_tmp) <= Vlimits[2]) {
+        s_tmp = (-gs_in[0].asasown[3] - Vint.y) / n.y;
+        if (s_tmp > s && abs(Vint.x + n.x * s_tmp) <= gs_in[0].asasown[3]) {
             segment = 2;
             s = s_tmp;
         }
@@ -53,15 +56,15 @@ void intersect_vmax_box(in vec2 Vint, in vec2 n, out vec2 vertex, out int segmen
 
     if (abs(n.x) > 1e-6) {
         // Segment 1: right edge:  a=[Vmax, -Vmax]  b=[0, 1] ==> den = n.x
-        s_tmp = (Vlimits[2] - Vint.x) / n.x;
-        if (s_tmp > s && abs(Vint.y + n.y * s_tmp) <= Vlimits[2]) {
+        s_tmp = (gs_in[0].asasown[3] - Vint.x) / n.x;
+        if (s_tmp > s && abs(Vint.y + n.y * s_tmp) <= gs_in[0].asasown[3]) {
             segment = 1;
             s = s_tmp;
         }
     } else {
         // Segment 3: left edge:   a=[-Vmax, -Vmax] b=[0, 1] ==> den = n.x
-        s_tmp = (-Vlimits[2] - Vint.x) / n.x;
-        if (s_tmp > s && abs(Vint.y + n.y * s_tmp) <= Vlimits[2]) {
+        s_tmp = (-gs_in[0].asasown[3] - Vint.x) / n.x;
+        if (s_tmp > s && abs(Vint.y + n.y * s_tmp) <= gs_in[0].asasown[3]) {
             segment = 3;
             s = s_tmp;
         }
@@ -76,19 +79,21 @@ void main()
     if (gs_in[0].selssd == 0) {
         return;
     }
+    asasown_frag = gs_in[0].asasown;
+
     // First thing to draw is the SSD background
     if (gs_in[0].int_id == 0) {
         color_fs = vec4(0.5, 0.5, 0.5, 0.5);
-        ssd_coord = Vlimits[2] * vec2(-1.0, 1.0);
+        ssd_coord = gs_in[0].asasown[3] * vec2(-1.0, 1.0);
         gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
         EmitVertex();
-        ssd_coord = Vlimits[2] * vec2(-1.0, -1.0);
+        ssd_coord = gs_in[0].asasown[3] * vec2(-1.0, -1.0);
         gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
         EmitVertex();
-        ssd_coord = Vlimits[2] * vec2(1.0, 1.0);
+        ssd_coord = gs_in[0].asasown[3] * vec2(1.0, 1.0);
         gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
         EmitVertex();
-        ssd_coord = Vlimits[2] * vec2(1.0, -1.0);
+        ssd_coord = gs_in[0].asasown[3] * vec2(1.0, -1.0);
         gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
         EmitVertex();
         EndPrimitive();
@@ -101,6 +106,7 @@ void main()
             float avglat = 0.5 * radians(gs_in[0].intruder[0] + gs_in[0].ownship[0]);
             float dlat   = radians(gs_in[0].intruder[0] - gs_in[0].ownship[0]);
             float dlon   = radians(gs_in[0].intruder[1] - gs_in[0].ownship[1]);
+            float rpz    = max(gs_in[0].asasown[0], gs_in[0].asasintruder[0]);
 
             vec2 dx = R_EARTH * vec2(dlon * cos(avglat), dlat);
 
@@ -108,7 +114,7 @@ void main()
             float d = length(dx);
 
             // Range check
-            if (d <= LOOKAHEAD_RANGE && d > RPZ) {
+            if (d <= LOOKAHEAD_RANGE && d > rpz) {
                 color_fs = vec4(1.0, 0.0, 0.0, 1.0);
 
                 // Aircraft is within range, draw a triangular velocity obstacle
@@ -117,7 +123,7 @@ void main()
                 vec2 nd = dx / d;
 
                 // Rotation matrix to go from distance vector to VO legs: [r0, -r1; r1 r0]
-                float r1 = RPZ / d;
+                float r1 = rpz / d;
                 float r0 = sqrt(1.0 - r1 * r1);
 
                 // vec2 n;
@@ -143,18 +149,18 @@ void main()
                 //             // VO legs intersect with different edges: we need to include vertices for one or two box corners
                 //             gl_Position = gl_in[0].gl_Position;
                 //             if (segment1 < 2) {
-                //                 ssd_coord.x   = Vlimits[2];
-                //                 gl_Position.x += gs_in[0].vAR[0] * VSCALE * Vlimits[2];
+                //                 ssd_coord.x   = gs_in[0].asasown[3];
+                //                 gl_Position.x += gs_in[0].vAR[0] * VSCALE * gs_in[0].asasown[3];
                 //             } else {
-                //                 ssd_coord.x = -Vlimits[2];
-                //                 gl_Position.x -= gs_in[0].vAR[0] * VSCALE * Vlimits[2];
+                //                 ssd_coord.x = -gs_in[0].asasown[3];
+                //                 gl_Position.x -= gs_in[0].vAR[0] * VSCALE * gs_in[0].asasown[3];
                 //             }
                 //             if (segment1 == 0 || segment1 == 3) {
-                //                 ssd_coord.y = Vlimits[2];
-                //                 gl_Position.y += gs_in[0].vAR[1] * VSCALE * Vlimits[2];
+                //                 ssd_coord.y = gs_in[0].asasown[3];
+                //                 gl_Position.y += gs_in[0].vAR[1] * VSCALE * gs_in[0].asasown[3];
                 //             } else {
-                //                 ssd_coord.y = -Vlimits[2];
-                //                 gl_Position.y -= gs_in[0].vAR[1] * VSCALE * Vlimits[2];
+                //                 ssd_coord.y = -gs_in[0].asasown[3];
+                //                 gl_Position.y -= gs_in[0].vAR[1] * VSCALE * gs_in[0].asasown[3];
                 //             }
                 //             EmitVertex();
                 //         }
@@ -169,18 +175,18 @@ void main()
                 //     if (abs(segment1 - segment2) > 1 || segment1 == -1) {
                 //         gl_Position = gl_in[0].gl_Position;
                 //         if (segment2 == 1 || segment2 == 2) {
-                //             ssd_coord.x = Vlimits[2];
-                //             gl_Position.x += gs_in[0].vAR[0] * VSCALE * Vlimits[2];
+                //             ssd_coord.x = gs_in[0].asasown[3];
+                //             gl_Position.x += gs_in[0].vAR[0] * VSCALE * gs_in[0].asasown[3];
                 //         } else {
-                //             ssd_coord.x = -Vlimits[2];
-                //             gl_Position.x -= gs_in[0].vAR[0] * VSCALE * Vlimits[2];
+                //             ssd_coord.x = -gs_in[0].asasown[3];
+                //             gl_Position.x -= gs_in[0].vAR[0] * VSCALE * gs_in[0].asasown[3];
                 //         }
                 //         if (segment2 < 2) {
-                //             ssd_coord.y = Vlimits[2];
-                //             gl_Position.y += gs_in[0].vAR[1] * VSCALE * Vlimits[2];
+                //             ssd_coord.y = gs_in[0].asasown[3];
+                //             gl_Position.y += gs_in[0].vAR[1] * VSCALE * gs_in[0].asasown[3];
                 //         } else {
-                //             ssd_coord.y = -Vlimits[2];
-                //             gl_Position.y -= gs_in[0].vAR[1] * VSCALE * Vlimits[2];
+                //             ssd_coord.y = -gs_in[0].asasown[3];
+                //             gl_Position.y -= gs_in[0].vAR[1] * VSCALE * gs_in[0].asasown[3];
                 //         }
                 //         EmitVertex();
                 //     }
@@ -198,24 +204,24 @@ void main()
                 EmitVertex();
 
                 // VO Leg 1
-                vec2 vertex1 = Vint + 2.0 * Vlimits[2] * vec2(nd.x * r0 - nd.y * r1, nd.y * r0 + nd.x * r1);
+                vec2 vertex1 = Vint + 2.0 * gs_in[0].asasown[3] * vec2(nd.x * r0 - nd.y * r1, nd.y * r0 + nd.x * r1);
                 ssd_coord = vertex1;
                 gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
                 EmitVertex();
 
                 // VO Leg 2
-                vec2 vertex2 = Vint + 2.0 * Vlimits[2] * vec2(nd.x * r0 + nd.y * r1, nd.y * r0 - nd.x * r1);
+                vec2 vertex2 = Vint + 2.0 * gs_in[0].asasown[3] * vec2(nd.x * r0 + nd.y * r1, nd.y * r0 - nd.x * r1);
                 ssd_coord = vertex2;
                 gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
                 EmitVertex();
 
                 // Extension of vertex1 in the direction of the VO bisector
-                ssd_coord = vertex1 + 2.0 * Vlimits[2] * nd;
+                ssd_coord = vertex1 + 2.0 * gs_in[0].asasown[3] * nd;
                 gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
                 EmitVertex();
 
                 // Extension of vertex2 in the direction of the VO bisector
-                ssd_coord = vertex2 + 2.0 * Vlimits[2] * nd;
+                ssd_coord = vertex2 + 2.0 * gs_in[0].asasown[3] * nd;
                 gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
                 EmitVertex();
 
@@ -248,7 +254,7 @@ void main()
 	if (gs_in[0].int_id == n_ac - 1) {
 		float dasasreso = gs_in[0].asasreso[0] * gs_in[0].asasreso[0] + gs_in[0].asasreso[1] * gs_in[0].asasreso[1];
 		// Only draw when the asasresolution point is within the velocity limits
-		if (dasasreso > Vlimits[0] - 200) {
+		if (dasasreso > gs_in[0].asasown[1] - 200) {
 			// Yellow color
 			color_fs = vec4(1.0, 1.0, 0.0, 1.0);
 			// Size

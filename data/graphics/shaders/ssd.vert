@@ -31,6 +31,10 @@ layout (location=10) in float trk1;
 layout (location=11) in float asasn;
 layout (location=12) in float asase;
 
+// Variables for non-homegeneous implementation
+layout (location=13) in vec4 asas0;
+layout (location=14) in vec4 asas1;
+
 out GSData {
     vec2 vAR;
     vec4 ownship;
@@ -40,6 +44,8 @@ out GSData {
     int own_id;
     int int_id;
     int selssd;
+    vec4 asasown;
+    vec4 asasintruder;
 } to_gs;
 
 void main() {
@@ -60,5 +66,7 @@ void main() {
     to_gs.own_id   = gl_InstanceID;
     to_gs.int_id   = gl_VertexID;
 	to_gs.asasreso = vec2(asase, asasn);
+    to_gs.asasown  = asas0;
+    to_gs.asasintruder = asas1;
     gl_Position    = vec4(vec2(1.0, float(screen_width) / float(screen_height)) * zoom * flat_earth * position, 0.0, 1.0);
 }
