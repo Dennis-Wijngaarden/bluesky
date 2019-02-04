@@ -371,6 +371,67 @@ class Traffic(TrafficArrays):
         self.ap.selaltcmd(len(self.lat) - 1, altref, acvs)
         self.vs[-1] = acvs
 
+    def creconfsuav(self, acid, actype, targetidx, dpsi, cpa, tlosh, cat, vmin, vmax, dH=None, tlosv=None, spd=None):
+        cat = int(cat)
+        if (cat == 0 or cat == 1 or cat == 2 or cat == 3):
+            pzr = settings.asas_pzr_cat[cat] * nm # m
+            pzh = settings.asas_pzh_cat[cat] * ft # m
+        else:
+            return False,"No valid priority category. [0-3] are valid"
+
+        pzr_max = max(self.pzr[targetidx] * nm, pzr) # m
+        pzh_max = max(self.pzh[targetidx] * ft, pzh) # m
+
+        latref  = self.lat[targetidx]  # deg
+        lonref  = self.lon[targetidx]  # deg
+        altref  = self.alt[targetidx]  # m
+        trkref  = radians(self.trk[targetidx])
+        gsref   = self.gs[targetidx]   # m/s
+        vsref   = self.vs[targetidx]   # m/s
+        cpa     = cpa # m
+
+        trk     = trkref + radians(dpsi)
+        gs      = gsref if spd is None else spd
+        if dH is None:
+            acalt = altref
+            acvs  = 0.0
+        else:
+            acalt = altref + dH
+            tlosv = tlosh if tlosv is None else tlosv
+            acvs  = vsref - np.sign(dH) * (abs(dH) - pzh_max) / tlosv
+
+        # Horizontal relative velocity vector
+        gsn, gse     = gs    * cos(trk),          gs    * sin(trk)
+        vreln, vrele = gsref * cos(trkref) - gsn, gsref * sin(trkref) - gse
+        # Relative velocity magnitude
+        vrel    = sqrt(vreln * vreln + vrele * vrele)
+        # Relative travel distance to closest point of approach
+        drelcpa = tlosh * vrel + (0 if cpa > pzr_max else sqrt(pzr_max * pzr_max - cpa * cpa))
+        # Initial intruder distance
+        dist    = sqrt(drelcpa * drelcpa + cpa * cpa)
+        # Rotation matrix diagonal and cross elements for distance vector
+        rd      = drelcpa / dist
+        rx      = cpa / dist
+        # Rotate relative velocity vector to obtain intruder bearing
+        brn     = degrees(atan2(-rx * vreln + rd * vrele,
+                                 rd * vreln + rx * vrele))
+
+        # Calculate intruder lat/lon
+        aclat, aclon = geo.qdrpos(latref, lonref, brn, dist / nm)
+
+        # convert groundspeed to CAS, and track to heading
+        wn, we     = self.wind.getdata(aclat, aclon, acalt)
+        tasn, tase = gsn - wn, gse - we
+        acspd      = vtas2cas(sqrt(tasn * tasn + tase * tase), acalt)
+        achdg      = degrees(atan2(tase, tasn))
+
+        # Create and, when necessary, set vertical speed
+        self.create(1, actype, acalt, acspd, None, aclat, aclon, achdg, acid)
+        self.setcustomcat(len(self.lat) - 1, cat)
+        self.setasasVlimits(len(self.lat) - 1, vmin, vmax)
+        self.ap.selaltcmd(len(self.lat) - 1, altref, acvs)
+        self.vs[-1] = acvs
+
     def delete(self, idx):
         """Delete an aircraft"""
         # If this is a multiple delete, sort first for list delete
@@ -761,8 +822,8 @@ class Traffic(TrafficArrays):
                           str(tlvl) + "/FL" +  str(int(round(tlvl/100.)))
     
     def setcustomcat(self, idx, cat):
+        self.cat[idx] = int(cat)
         if (cat == 0 or cat == 1 or cat == 2 or cat == 3):
-            self.cat[idx] = int(cat)
             self.pzr[idx] = settings.asas_pzr_cat[cat]
             self.pzh[idx] = settings.asas_pzh_cat[cat]
             return True

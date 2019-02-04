@@ -4,7 +4,7 @@
 #define LOOKAHEAD_RANGE 2e5 // 200 km
 //#define rpz 9265 // 5 NM
 #define SSD_ALT_RANGE 304.8 // 1,000 ft
-#define VSCALE 0.4 // Display scale for SSD [ms-1 / GLXY]
+#define VSCALE 10.0 // Display scale for SSD [ms-1 / GLXY]
 layout (points) in;
 layout (triangle_strip, max_vertices=13) out;
 
@@ -234,7 +234,7 @@ void main()
         color_fs = vec4(0.0, 1.0, 0.0, 1.0);
         float trkown = radians(gs_in[0].ownship[3]);
         vec2 nVown = vec2(sin(trkown), cos(trkown));
-        vec2 nnVown = 5.0 * vec2(nVown.y, -nVown.x);
+        vec2 nnVown = 0.1 * vec2(nVown.y, -nVown.x);
 
         ssd_coord = nnVown;
         gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
@@ -258,7 +258,7 @@ void main()
 			// Yellow color
 			color_fs = vec4(1.0, 1.0, 0.0, 1.0);
 			// Size
-			float PSCALE = 20.0;
+			float PSCALE = 0.5;
 
 			ssd_coord = gs_in[0].asasreso + PSCALE * vec2(-1.000,  0.000);
 			gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);

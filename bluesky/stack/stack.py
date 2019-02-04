@@ -314,6 +314,12 @@ def init(startup_scnfile):
             bs.traf.creconfs,
             "Create an aircraft that is in conflict with 'targetid'"
         ],
+        "CRECONFSUAV": [
+            "CRECONFSUAV id, type, targetid, dps (deg), cpa (m), tlos_hor (s), cat, vmin (m/s), vmax (m/s), [dH (ft), tlos_ver (s), spd]",
+            "txt,txt,acid,hdg,float,time,int,float,float,[alt, time, spd]",
+            bs.traf.creconfsuav,
+            "Create an aircraft that is in conflict with 'targetid'"
+        ],
         "CRELOG": [
             "CRELOG LOGNAME, [dt,header]",
             "txt,[float,string]",

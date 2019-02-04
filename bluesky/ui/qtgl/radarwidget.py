@@ -718,7 +718,7 @@ class RadarWidget(QGLWidget):
             update_buffer(self.actasbuf, np.array(data.tas[:MAX_NAIRCRAFT], dtype=np.float32))
             update_buffer(self.asasnbuf, np.array(data.asasn[:MAX_NAIRCRAFT], dtype=np.float32))
             update_buffer(self.asasebuf, np.array(data.asase[:MAX_NAIRCRAFT], dtype=np.float32))
-            update_buffer(self.acasasbuf, np.concatenate(np.transpose(np.array([np.array(data.pzr[:MAX_NAIRCRAFT], dtype=np.float32), \
+            update_buffer(self.acasasbuf, np.concatenate(np.transpose(np.array([np.array(data.pzr[:MAX_NAIRCRAFT] * nm, dtype=np.float32), \
                                                                              np.array(data.Vmin[:MAX_NAIRCRAFT], dtype=np.float32)**2, \
                                                                              np.array(data.Vmax[:MAX_NAIRCRAFT], dtype=np.float32)**2, \
                                                                              np.array(data.Vmax[:MAX_NAIRCRAFT], dtype=np.float32)])), axis=0))
