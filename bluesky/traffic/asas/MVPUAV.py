@@ -5,7 +5,7 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Dennis van Wijngaarden modified from Jerom Maas
 """
 import numpy as np
-from bluesky.tools.aero import ft,fpm,kts
+from bluesky.tools.aero import ft,fpm,kts,nm
 
 
 def start(asas):
@@ -103,10 +103,10 @@ def resolve(asas, traf):
     # Determine ASAS module commands for all aircraft--------------------------
 
     # Cap the velocity
-    newgscapped = np.maximum(asas.vmin,np.minimum(asas.vmax,newgs))
+    newgscapped = np.maximum(traf.Vmin,np.minimum(traf.Vmax,newgs))
 
     # Cap the vertical speed
-    vscapped = np.maximum(asas.vsmin,np.minimum(asas.vsmax,newvs))
+    vscapped = np.maximum(traf.Vsmin,np.minimum(traf.Vsmax,newvs))
 
     # Now assign resolutions to variables in the ASAS class
     asas.trk = newtrack
@@ -132,7 +132,7 @@ def resolve(asas, traf):
     # To compute asas alt, timesolveV is used. timesolveV is a really big value (1e9)
     # when there is no conflict. Therefore asas alt is only updated when its
     # value is less than the look-ahead time, because for those aircraft are in conflict
-    altCondition               = np.logical_and(timesolveV<asas.dtlookahead, np.abs(dv[2,:])>0.0)
+    altCondition               = np.logical_and(timesolveV<traf.tla, np.abs(dv[2,:])>0.0)
     asasalttemp                = asas.vs*timesolveV + traf.alt
     asas.alt[altCondition]     = asasalttemp[altCondition]
 
@@ -171,12 +171,13 @@ def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
     dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])
 
     # Compute horizontal intrusion
-    iH = asas.Rm - dabsH
+    Rm = max(traf.pzr[id1], traf.pzr[id2]) * nm * asas.mar
+    iH = Rm - dabsH
 
     # Exception handlers for head-on conflicts
     # This is done to prevent division by zero in the next step
-    if dabsH <= 10.:
-        dabsH = 10.
+    if dabsH <= 0.1:
+        dabsH = 0.1
         dcpa[0] = drel[1] / dist * dabsH
         dcpa[1] = -drel[0] / dist * dabsH
 
@@ -187,8 +188,8 @@ def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
 
     # If intruder is outside the ownship PZ, then apply extra factor
     # to make sure that resolution does not graze IPZ
-    if asas.Rm<dist and dabsH<dist:
-        erratum=np.cos(np.arcsin(asas.Rm/dist)-np.arcsin(dabsH/dist))
+    if Rm<dist and dabsH<dist:
+        erratum=np.cos(np.arcsin(Rm/dist)-np.arcsin(dabsH/dist))
         dv1 = dv1/erratum
         dv2 = dv2/erratum
 
@@ -197,7 +198,8 @@ def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
 
     # Compute the  vertical intrusion
     # Amount of vertical intrusion dependent on vertical relative velocity
-    iV = asas.dhm if abs(vrel[2])>0.0 else asas.dhm-abs(drel[2])
+    dhm = max(traf.pzh[id1], traf.pzh[id2]) * ft * asas.mar
+    iV = dhm if abs(vrel[2])>0.0 else dhm-abs(drel[2])
 
     # Get the time to solve the conflict vertically - tsolveV
     tsolV = abs(drel[2]/vrel[2]) if abs(vrel[2])>0.0 else tLOS
@@ -205,9 +207,10 @@ def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
     # If the time to solve the conflict vertically is longer than the look-ahead time,
     # because the the relative vertical speed is very small, then solve the intrusion
     # within tinconf
-    if tsolV>asas.dtlookahead:
+    dtlookahead = max(traf.tla[id1], traf.tla[id2])
+    if tsolV>dtlookahead:
         tsolV = tLOS
-        iV    = asas.dhm
+        iV    = dhm
 
     # Compute the resolution velocity vector in the vertical direction
     # The direction of the vertical resolution is such that the aircraft with
