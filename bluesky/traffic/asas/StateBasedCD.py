@@ -1,11 +1,14 @@
 ''' State-based conflict detection. '''
 import numpy as np
 from bluesky.tools import geo
-from bluesky.tools.aero import nm
+from bluesky.tools.aero import nm, ft
 
 
-def detect(ownship, intruder, RPZ, HPZ, tlookahead):
+def detect(ownship, intruder):
     ''' Conflict detection between ownship (traf) and intruder (traf/adsb).'''
+    RPZ = np.maximum(ownship.pzr, intruder.pzr) * nm
+    HPZ = np.maximum(ownship.pzh, intruder.pzh) * ft
+    tlookahead = np.maximum(ownship.tla, intruder.tla) 
 
     # Identity matrix of order ntraf: avoid ownship-ownship detected conflicts
     I = np.eye(ownship.ntraf)

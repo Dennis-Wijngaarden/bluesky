@@ -32,6 +32,7 @@ from . import MVP
 from . import Swarm
 from . import SSD
 from . import SSDUAV
+from . import MVPUAV
 
 
 class ASAS(TrafficArrays):
@@ -42,7 +43,7 @@ class ASAS(TrafficArrays):
     CDmethods = {"STATEBASED": StateBasedCD}
 
     # Dictionary of CR methods
-    CRmethods = {"OFF": DoNothing, "MVP": MVP, "EBY": Eby, "SWARM": Swarm}
+    CRmethods = {"OFF": DoNothing, "MVP": MVP, "EBY": Eby, "SWARM": Swarm, "MVPUAV": MVPUAV}
     # If pyclipper is installed add it to CRmethods-dict
     if SSD.loaded_pyclipper():
         CRmethods["SSD"] = SSD
@@ -487,7 +488,7 @@ class ASAS(TrafficArrays):
             # Conflict detection
             self.confpairs, self.lospairs, self.inconf, self.tcpamax, \
                 self.qdr, self.dist, self.tcpa, self.tLOS = \
-                self.cd.detect(bs.traf, bs.traf, self.R, self.dh, self.dtlookahead)
+                self.cd.detect(bs.traf, bs.traf)
 
             # Conflict resolution if there are conflicts
             if self.confpairs:

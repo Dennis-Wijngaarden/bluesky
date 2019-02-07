@@ -119,6 +119,7 @@ class Traffic(TrafficArrays):
             self.cat = np.array([], dtype=np.int) # Set to standard possibilities [0,1,2.3]
             self.pzr = np.array([])
             self.pzh = np.array([])
+            self.tla = np.array([])
             self.Vmin = np.array([])
             self.Vmax  = np.array([])
             self.Vsmin = np.array([])
@@ -311,6 +312,7 @@ class Traffic(TrafficArrays):
         self.cat[-n:]       = np.zeros(n, dtype=np.int)
         self.pzr[-n:]       = np.ones(n, dtype=np.float64) * settings.asas_pzr_cat[0]
         self.pzh[-n:]       = np.ones(n, dtype=np.float64) * settings.asas_pzh_cat[0]
+        self.tla[-n:]       = np.ones(n, dtype=np.float64) * settings.asas_tla_cat[0]
         self.Vmin[-n:]      = np.ones(n, dtype=np.float64) * settings.asas_vmin * nm / 3600. # to m/s
         self.Vmax[-n:]      = np.ones(n, dtype=np.float64) * settings.asas_vmax * nm / 3600. # to m/s
         self.Vsmin[-n:]     = np.zeros(n, dtype=np.float64)
@@ -826,6 +828,7 @@ class Traffic(TrafficArrays):
         if (cat == 0 or cat == 1 or cat == 2 or cat == 3):
             self.pzr[idx] = settings.asas_pzr_cat[cat]
             self.pzh[idx] = settings.asas_pzh_cat[cat]
+            self.tla[idx] = settings.asas_tla_cat[cat]
             return True
         else:
             return False,"No valid priority category. [0-3] are valid"
