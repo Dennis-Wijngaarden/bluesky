@@ -308,7 +308,7 @@ class RadarWidget(QGLWidget):
         self.ssd.bind_attrib(ATTRIB_ASAS1, 4, self.acasasbuf)
 
         # ------- Protected Zone -------------------------
-	self.protectedzone = RenderObject(gl.GL_POINTS)
+        self.protectedzone = RenderObject(gl.GL_POINTS)
         self.protectedzone.bind_attrib(0, 1, self.acpzrbuf, instance_divisor=1)
         self.protectedzone.bind_attrib(1, 1, self.aclatbuf, instance_divisor=1)
         self.protectedzone.bind_attrib(2, 1, self.aclonbuf, instance_divisor=1)
