@@ -252,6 +252,7 @@ class RadarWidget(QGLWidget):
         self.asasnbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.asasebuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.acasasbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.acpzrbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
 
         self.polyprevbuf = create_empty_buffer(MAX_POLYPREV_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.allpolysbuf = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 16, usage=gl.GL_DYNAMIC_DRAW)
@@ -307,11 +308,11 @@ class RadarWidget(QGLWidget):
         self.ssd.bind_attrib(ATTRIB_ASAS1, 4, self.acasasbuf)
 
         # ------- Protected Zone -------------------------
-        circlevertices = np.transpose(np.array((2.5 * nm * np.cos(np.linspace(0.0, 2.0 * np.pi, VCOUNT_PZ)), 2.5 * nm * np.sin(np.linspace(0.0, 2.0 * np.pi, VCOUNT_PZ))), dtype=np.float32))
-        self.protectedzone = RenderObject(gl.GL_LINE_LOOP, vertex=circlevertices)
-        self.protectedzone.bind_attrib(ATTRIB_LAT, 1, self.aclatbuf, instance_divisor=1)
-        self.protectedzone.bind_attrib(ATTRIB_LON, 1, self.aclonbuf, instance_divisor=1)
-        self.protectedzone.bind_color(self.accolorbuf, instance_divisor=1)
+	self.protectedzone = RenderObject(gl.GL_POINTS)
+        self.protectedzone.bind_attrib(0, 1, self.acpzrbuf, instance_divisor=1)
+        self.protectedzone.bind_attrib(1, 1, self.aclatbuf, instance_divisor=1)
+        self.protectedzone.bind_attrib(2, 1, self.aclonbuf, instance_divisor=1)
+        self.protectedzone.bind_attrib(3, 4, self.accolorbuf, instance_divisor=1, datatype=gl.GL_UNSIGNED_BYTE, normalize=True)
 
         # ------- A/C symbol -----------------------------
         acvertices = np.array([(0.0, 0.5 * ac_size), (-0.5 * ac_size, -0.5 * ac_size), (0.0, -0.25 * ac_size), (0.5 * ac_size, -0.5 * ac_size)], dtype=np.float32)
@@ -441,6 +442,9 @@ class RadarWidget(QGLWidget):
             self.ssd_shader.loc_vlimits = gl.glGetUniformLocation(self.ssd_shader.program, 'Vlimits')
             self.ssd_shader.loc_nac = gl.glGetUniformLocation(self.ssd_shader.program, 'n_ac')
 
+            self.pzr_shader = BlueSkyProgram(path.join(shpath, 'pz.vert'), path.join(shpath, 'pz.frag'), path.join(shpath, 'pz.geom'))
+            self.pzr_shader.bind_uniform_buffer('global_data', self.globaldata)
+
         except RuntimeError as e:
             print('Error compiling shaders in radarwidget: ' + e.args[0])
             qCritical('Error compiling shaders in radarwidget: ' + e.args[0])
@@ -531,11 +535,6 @@ class RadarWidget(QGLWidget):
         # update wrap longitude and direction for the instanced objects
         self.globaldata.enable_wrap(True)
 
-        # PZ circles only when they are bigger than the A/C symbols
-        if self.naircraft > 0 and actdata.show_traf and actdata.show_pz and self.zoom >= 0.15:
-            self.globaldata.set_vertex_scale_type(VERTEX_IS_METERS)
-            self.protectedzone.draw(n_instances=self.naircraft)
-
         self.globaldata.set_vertex_scale_type(VERTEX_IS_SCREEN)
 
         # Draw traffic symbols
@@ -599,6 +598,11 @@ class RadarWidget(QGLWidget):
             gl.glUniform3f(self.ssd_shader.loc_vlimits, self.asas_vmin ** 2, self.asas_vmax ** 2, self.asas_vmax)
             gl.glUniform1i(self.ssd_shader.loc_nac, self.naircraft)
             self.ssd.draw(vertex_count=self.naircraft, n_instances=self.naircraft)
+
+        # PZ circles only when they are bigger than the A/C symbols
+        if self.naircraft > 0 and actdata.show_traf and actdata.show_pz and self.zoom >= 0.15:
+            self.pzr_shader.use()
+            self.protectedzone.draw(vertex_count=1, n_instances=self.naircraft)
 
         # Unbind everything
         RenderObject.unbind_all()
@@ -722,6 +726,7 @@ class RadarWidget(QGLWidget):
                                                                              np.array(data.Vmin[:MAX_NAIRCRAFT], dtype=np.float32)**2, \
                                                                              np.array(data.Vmax[:MAX_NAIRCRAFT], dtype=np.float32)**2, \
                                                                              np.array(data.Vmax[:MAX_NAIRCRAFT], dtype=np.float32)])), axis=0))
+            update_buffer(self.acpzrbuf, np.array(data.pzr[:MAX_NAIRCRAFT] * nm, dtype=np.float32))
 
             # CPA lines to indicate conflicts
             ncpalines = np.count_nonzero(data.inconf)
