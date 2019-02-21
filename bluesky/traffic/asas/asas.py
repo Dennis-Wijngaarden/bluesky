@@ -5,10 +5,11 @@ import bluesky as bs
 from bluesky import settings
 from bluesky.tools.aero import ft, nm
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.tools import geo
 
 # Register settings defaults
 settings.set_variable_defaults(prefer_compiled=False, asas_dt=1.0,
-                               asas_dtlookahead=300.0, asas_mar=1.2,
+                               asas_dtlookahead=300.0, asas_mar=2.0,
                                asas_pzr=5.0, asas_pzh=1000.0,
                                asas_vmin=200.0, asas_vmax=500.0)
 
@@ -138,6 +139,11 @@ class ASAS(TrafficArrays):
         self.R_cat              = settings.asas_pzr_cat
         self.dh_cat             = settings.asas_pzh_cat
         self.dtlookahead_cat    = settings.asas_tla_cat
+
+        # Functionalities for experimental resolutions for drones
+        self.free_to_actwp = np.array([], dtype=bool)   # Conflict free flag towards activated waypoint
+        self.time_of_conflict = np.array([])            # Sim time of start of conflict. High value is no conflict
+        self.time_since_conflict = np.array([])
         
     def toggle(self, flag=None):
         if flag is None:
@@ -449,23 +455,27 @@ class ASAS(TrafficArrays):
                 # LOS. This is particularly relevant when vertical resolutions
                 # are used.
                 hdist = np.linalg.norm(dist)
-                hor_los = hdist < self.R
+                R = max(bs.traf.pzr[idx1], bs.traf.pzr[idx2])
+                hor_los = hdist < R
 
                 # Bouncing conflicts:
                 # If two aircraft are getting in and out of conflict continously,
                 # then they it is a bouncing conflict. ASAS should stay active until
                 # the bouncing stops.
-                is_bouncing = abs(bs.traf.trk[idx1] - bs.traf.trk[idx2]) < 30.0 and hdist < self.Rm
+                is_bouncing = abs(bs.traf.trk[idx1] - bs.traf.trk[idx2]) < 30.0 and hdist < (R * self.mar)
 
             # Start recovery for ownship if intruder is deleted, or if past CPA
             # and not in horizontal LOS or a bouncing conflict
-            if idx2 >= 0 and (not past_cpa or hor_los or is_bouncing):
+            if idx2 >= 0 and bs.traf.cat[idx1]>0 and not (hor_los or is_bouncing) and (self.free_to_actwp[idx1] or self.time_since_conflict[idx1] < 3.):
+                # Switch off ASAS for drone (excluding cpa )
+                self.active[idx1] = False
+            elif idx2 >= 0 and (not past_cpa or hor_los or is_bouncing):
                 # Enable ASAS for this aircraft
                 self.active[idx1] = True
             else:
                 # Switch ASAS off for ownship
                 self.active[idx1] = False
-
+            if self.active[idx1] == False:
                 # Waypoint recovery after conflict: Find the next active waypoint
                 # and send the aircraft to that waypoint.
                 iwpid = bs.traf.ap.route[idx1].findact(idx1)
@@ -489,6 +499,16 @@ class ASAS(TrafficArrays):
             self.confpairs, self.lospairs, self.inconf, self.tcpamax, \
                 self.qdr, self.dist, self.tcpa, self.tLOS = \
                 self.cd.detect(bs.traf, bs.traf)
+            
+            # Save times of start of conflict
+            times = np.where(self.inconf, bs.sim.simt, 9999999999.)
+            if len(self.time_of_conflict) == 0:
+                self.time_of_conflict = times
+            else:
+                self.time_of_conflict[self.inconf == False] = 9999999999.
+                self.time_of_conflict = np.minimum(self.time_of_conflict, times)
+
+            self.time_since_conflict = bs.sim.simt - self.time_of_conflict
 
             # Conflict resolution if there are conflicts
             if self.confpairs:
@@ -509,7 +529,115 @@ class ASAS(TrafficArrays):
             self.confpairs_unique = confpairs_unique
             self.lospairs_unique = lospairs_unique
 
+            self.detect_to_next_wp()
+
             self.ResumeNav()
 
         # iconf0 = np.array(self.iconf)
         #
+
+    def detect_to_next_wp(self):
+        ''' Conflict detection between ownship (traf) and intruder to next waypoint (traf/adsb).'''
+        ownship = bs.traf
+        intruder = bs.traf
+        RPZ = np.maximum(ownship.pzr, intruder.pzr) * nm
+        HPZ = np.maximum(ownship.pzh, intruder.pzh) * ft
+        tlookahead = np.minimum(np.maximum(ownship.tla, intruder.tla), ownship.actwp.calctimetoactivewp() + 10.)
+        np.where(ownship.gs < 0.01, 0.0, tlookahead)
+
+        # Identity matrix of order ntraf: avoid ownship-ownship detected conflicts
+        I = np.eye(ownship.ntraf)
+
+        # Horizontal conflict ------------------------------------------------------
+
+        # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
+        qdr, dist = geo.qdrdist_matrix(np.mat(ownship.lat), np.mat(ownship.lon),
+                                    np.mat(intruder.lat), np.mat(intruder.lon))
+
+        # Convert back to array to allow element-wise array multiplications later on
+        # Convert to meters and add large value to own/own pairs
+        qdr = np.array(qdr)
+        dist = np.array(dist) * nm + 1e9 * I
+
+        # Calculate horizontal closest point of approach (CPA)
+        qdrrad = np.radians(qdr)
+        dx = dist * np.sin(qdrrad)  # is pos j rel to i
+        dy = dist * np.cos(qdrrad)  # is pos j rel to i
+
+        # Ownship track angle and speed
+        owntrk = geo.qdrdist(ownship.lat, ownship.lon, ownship.actwp.lat, ownship.actwp.lon)[0]
+        owntrkrad = np.radians(owntrk)
+        ownu = ownship.gs * np.sin(owntrkrad).reshape((1, ownship.ntraf))  # m/s
+        ownv = ownship.gs * np.cos(owntrkrad).reshape((1, ownship.ntraf))  # m/s
+
+        # Intruder track angle and speed
+        inttrkrad = np.radians(intruder.trk)
+        intu = intruder.gs * np.sin(inttrkrad).reshape((1, ownship.ntraf))  # m/s
+        intv = intruder.gs * np.cos(inttrkrad).reshape((1, ownship.ntraf))  # m/s
+
+        du = ownu - intu.T  # Speed du[i,j] is perceived eastern speed of i to j
+        dv = ownv - intv.T  # Speed dv[i,j] is perceived northern speed of i to j
+
+        dv2 = du * du + dv * dv
+        dv2 = np.where(np.abs(dv2) < 1e-6, 1e-6, dv2)  # limit lower absolute value
+        vrel = np.sqrt(dv2)
+
+        tcpa = -(du * dx + dv * dy) / dv2 + 1e9 * I
+
+        # Calculate distance^2 at CPA (minimum distance^2)
+        dcpa2 = dist * dist - tcpa * tcpa * dv2
+
+        # Check for horizontal conflict
+        R2 = RPZ * RPZ
+        swhorconf = dcpa2 < R2  # conflict or not
+
+        # Calculate times of entering and leaving horizontal conflict
+        dxinhor = np.sqrt(np.maximum(0., R2 - dcpa2))  # half the distance travelled inzide zone
+        dtinhor = dxinhor / vrel
+
+        tinhor = np.where(swhorconf, tcpa - dtinhor, 1e8)  # Set very large if no conf
+        touthor = np.where(swhorconf, tcpa + dtinhor, -1e8)  # set very large if no conf
+
+        # Vertical conflict --------------------------------------------------------
+
+        # Vertical crossing of disk (-dh,+dh)
+        dalt = ownship.alt.reshape((1, ownship.ntraf)) - \
+            intruder.alt.reshape((1, ownship.ntraf)).T  + 1e9 * I
+
+        dvs = ownship.vs.reshape(1, ownship.ntraf) - \
+            intruder.vs.reshape(1, ownship.ntraf).T
+        dvs = np.where(np.abs(dvs) < 1e-6, 1e-6, dvs)  # prevent division by zero
+
+        # Check for passing through each others zone
+        tcrosshi = (dalt + HPZ) / -dvs
+        tcrosslo = (dalt - HPZ) / -dvs
+        tinver = np.minimum(tcrosshi, tcrosslo)
+        toutver = np.maximum(tcrosshi, tcrosslo)
+
+        # Combine vertical and horizontal conflict----------------------------------
+        tinconf = np.maximum(tinver, tinhor)
+        toutconf = np.minimum(toutver, touthor)
+
+        swconfl = np.array(swhorconf * (tinconf <= toutconf) * (toutconf > 0.0) * \
+            (tinconf < tlookahead) * (1.0 - I), dtype=np.bool)
+
+        # --------------------------------------------------------------------------
+        # Update conflict lists
+        # --------------------------------------------------------------------------
+        # Ownship conflict flag and max tCPA
+        inconf = np.any(swconfl, 1)
+        tcpamax = np.max(tcpa * swconfl, 1)
+
+        # Select conflicting pairs: each a/c gets their own record
+        confpairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swconfl))]
+        swlos = (dist < RPZ) * (np.abs(dalt) < HPZ)
+        lospairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swlos))]
+
+        # bearing, dist, tcpa, tinconf, toutconf per conflict
+        qdr = qdr[swconfl]
+        dist = dist[swconfl]
+        tcpa = tcpa[swconfl]
+        tinconf = tinconf[swconfl]
+
+        self.free_to_actwp = inconf
+        return

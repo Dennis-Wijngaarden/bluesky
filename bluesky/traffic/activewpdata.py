@@ -3,6 +3,7 @@ import bluesky as bs
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.tools.aero import nm, g0
 from bluesky.tools.misc import degto180
+from bluesky.tools.geo import qdrdist, nm
 
 
 class ActiveWaypoint(TrafficArrays):
@@ -63,3 +64,11 @@ class ActiveWaypoint(TrafficArrays):
            np.tan(np.radians(0.5 * np.abs(degto180(wpqdr%360. - next_wpqdr%360.)))))
 
         return turndist,turnrad
+
+    # Calculate time to next waypoint
+    def calctimetoactivewp(self):
+        lat_traf = bs.traf.lat
+        lon_traf = bs.traf.lon
+        qdr, dist = qdrdist(lat_traf, lon_traf, self.lat, self.lon)
+        time = dist * nm / bs.traf.gs
+        return time

@@ -776,6 +776,14 @@ class Route:
                            lnavon,self.wpflyby[self.iactwp], nextqdr
 
         lnavon = self.iactwp +1 < self.nwp
+
+        # If a drone at end of flightplan, land it
+        if ((lnavon == False) and (bs.traf.cat[self.iac]>0)):
+            # start decelerating
+            stack.stack("SPD " + str(bs.traf.id[self.iac]) + " " + "0")
+            #start descend
+            stack.stack("ALT " + str(bs.traf.id[self.iac]) + " " + "0")
+
         if lnavon:
             self.iactwp += 1
 
@@ -1051,6 +1059,9 @@ class Route:
 
         elif self.nwp == 1:
             return 0
+
+        if (bs.traf.cat[i] > 0):
+            return self.iactwp
 
         # Find closest
         wplat  = array(self.wplat)

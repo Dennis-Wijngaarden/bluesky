@@ -32,8 +32,8 @@ from bluesky import settings
 settings.set_variable_defaults(performance_model='openap', snapdt=1.0, instdt=1.0, skydt=1.0, asas_pzr=5.0, asas_pzh=1000.0)
 
 # Register specific CD&R settings for drone categories [1-3]
-settings.set_variable_defaults(asas_pzr_cat = [settings.asas_pzr, 50.0 / nm, 50.0 / nm, 50.0 / nm], \
-                               asas_pzh_cat = [settings.asas_pzh, 20.0 / ft, 20.0 / ft, 20.0 / ft], \
+settings.set_variable_defaults(asas_pzr_cat = [settings.asas_pzr, 25.0 / nm, 25.0 / nm, 25.0 / nm], \
+                               asas_pzh_cat = [settings.asas_pzh, 1000.0 / ft, 1000.0 / ft, 1000.0 / ft], \
                                asas_tla_cat = [300., 60.0, 60.0, 60.0])
 
 if settings.performance_model == 'bada':
