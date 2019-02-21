@@ -129,7 +129,7 @@ sender_rte = None  # bs net route to sender
 # When SAVEIC is used, we will also have a recoding scenario file handle
 savefile = None # File object of recording scenario file
 defexcl = ["PAN","ZOOM","HOLD","POS","INSEDIT","SAVEIC","QUIT","PCALL","CALC","FF",
-           "IC","OP","HOLD","RESE","MCRE","CRE","TRAFGEN"] # Commands to be excluded, default
+           "IC","OP","HOLD","RESET","MCRE","CRE","TRAFGEN"] # Commands to be excluded, default
 saveexcl = defexcl
 saveict0 = 0.0 # simt time of moment of SAVEIC command, 00:00:00.00 in recorded file
 
@@ -1051,6 +1051,13 @@ def sched_cmd(time, args, relative=False):
 def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
     global scentime, scencmd
 
+    # Check for a/c id as first argument (use case: procedure files)
+    # CALL KL204 myproc should have effect as if: CALL myproc KL204
+    if mergeWithExisting and pcall_arglst and fname in bs.traf.id:
+        acid = fname
+        fname = pcall_arglst[0]
+        pcall_arglst = [acid]+list(pcall_arglst[1:])
+
     # Save original filename for if path splitting fails (relative path)
     orgfname = fname
 
@@ -1067,8 +1074,11 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
     path = path or os.path.normpath(settings.scenario_path)
     ext = ext or '.scn'
 
+
     # The entire filename, possibly with added path and extension
     fname_full = os.path.join(path, base + ext)
+
+
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
@@ -1116,13 +1126,13 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
                 imin = int(ttxt[1]) * 60.0
                 xsec = float(ttxt[2])
                 cmdtime = ihr + imin + xsec + t_offset
-                if not scentime or cmdtime > scentime[-1]:
+                if not scentime or cmdtime >= scentime[-1]:
                     scentime.append(cmdtime)
                     scencmd.append(line[icmdline + 1:].strip("\n"))
                 else:
                     if cmdtime > instime:
-                        insidx, instime = next(((i - 1, t)
-                            for i, t in enumerate(scentime) if t > cmdtime),
+                        insidx, instime = next(((i, t)
+                            for i, t in enumerate(scentime) if t >= cmdtime),
                                 (len(scentime), scentime[-1]))
                     scentime.insert(insidx, cmdtime)
                     scencmd.insert(insidx, line[icmdline + 1:].strip("\n"))
