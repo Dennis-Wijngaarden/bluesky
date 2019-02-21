@@ -38,11 +38,12 @@ settings.set_variable_defaults(asas_pzr_cat = [settings.asas_pzr, 25.0 / nm, 25.
 
 if settings.performance_model == 'bada':
     try:
-        print('Using BADA Perfromance model')
+        print('Using BADA Performance model')
         from .performance.bada.perfbada import PerfBADA as Perf
-    except ImportError as err:
-        print(err.args[0])
+    except Exception as err:# ImportError as err:
+        print(err)
         print('Falling back to Open Aircraft Performance (OpenAP) model')
+        settings.performance_model = "openap"
         from .performance.openap import OpenAP as Perf
 elif settings.performance_model == 'openap':
     print('Using Open Aircraft Performance (OpenAP) model')
