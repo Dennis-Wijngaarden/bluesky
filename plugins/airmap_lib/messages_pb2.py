@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='messages.proto',
   package='',
   syntax='proto2',
-  serialized_pb=_b('\n\x0emessages.proto\"[\n\nGPSMessage\x12\x11\n\ttimestamp\x18\x01 \x02(\x04\x12\x0b\n\x03lat\x18\x02 \x02(\x11\x12\x0b\n\x03lon\x18\x03 \x02(\x11\x12\x0f\n\x07\x61lt_msl\x18\x04 \x02(\x11\x12\x0f\n\x07\x61lt_agl\x18\x05 \x02(\x11\"\x1d\n\x0cUavHeartbeat\x12\r\n\x05\x61rmed\x18\x01 \x01(\x08\"+\n\nMavCommand\x12\x1d\n\x07\x63ommand\x18\x01 \x02(\x0e\x32\x0c.MavCommands\"g\n\nFlightplan\x12&\n\x08waypoint\x18\x01 \x03(\x0b\x32\x14.Flightplan.Waypoint\x1a\x31\n\x08Waypoint\x12\x0b\n\x03lat\x18\x01 \x02(\x11\x12\x0b\n\x03lon\x18\x02 \x02(\x11\x12\x0b\n\x03\x61lt\x18\x03 \x01(\x11*I\n\x0bMavCommands\x12\x11\n\rSTART_MISSION\x10\x01\x12\x11\n\rPAUSE_MISSION\x10\x02\x12\x14\n\x10\x43ONTINUE_MISSION\x10\x03')
+  serialized_pb=_b('\n\x0emessages.proto\"[\n\nGPSMessage\x12\x11\n\ttimestamp\x18\x01 \x02(\x04\x12\x0b\n\x03lat\x18\x02 \x02(\x11\x12\x0b\n\x03lon\x18\x03 \x02(\x11\x12\x0f\n\x07\x61lt_msl\x18\x04 \x02(\x11\x12\x0f\n\x07\x61lt_agl\x18\x05 \x02(\x11\"\xac\x01\n\x0bTrafficInfo\x12\x11\n\tunique_id\x18\x01 \x02(\t\x12\x13\n\x0b\x61ircraft_id\x18\x02 \x02(\t\x12\x11\n\ttimestamp\x18\x03 \x02(\x04\x12\x15\n\rrecorded_time\x18\x04 \x02(\x04\x12\x0b\n\x03lat\x18\x05 \x02(\x11\x12\x0b\n\x03lon\x18\x06 \x02(\x11\x12\x0b\n\x03\x61lt\x18\x07 \x02(\x11\x12\x13\n\x0bgroundspeed\x18\x08 \x02(\r\x12\x0f\n\x07heading\x18\t \x02(\r\"\x1d\n\x0cUavHeartbeat\x12\r\n\x05\x61rmed\x18\x01 \x01(\x08\"+\n\nMavCommand\x12\x1d\n\x07\x63ommand\x18\x01 \x02(\x0e\x32\x0c.MavCommands\"g\n\nFlightplan\x12&\n\x08waypoint\x18\x01 \x03(\x0b\x32\x14.Flightplan.Waypoint\x1a\x31\n\x08Waypoint\x12\x0b\n\x03lat\x18\x01 \x02(\x11\x12\x0b\n\x03lon\x18\x02 \x02(\x11\x12\x0b\n\x03\x61lt\x18\x03 \x01(\x11*I\n\x0bMavCommands\x12\x11\n\rSTART_MISSION\x10\x01\x12\x11\n\rPAUSE_MISSION\x10\x02\x12\x14\n\x10\x43ONTINUE_MISSION\x10\x03')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -45,8 +45,8 @@ _MAVCOMMANDS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=292,
-  serialized_end=365,
+  serialized_start=467,
+  serialized_end=540,
 )
 _sym_db.RegisterEnumDescriptor(_MAVCOMMANDS)
 
@@ -116,6 +116,93 @@ _GPSMESSAGE = _descriptor.Descriptor(
 )
 
 
+_TRAFFICINFO = _descriptor.Descriptor(
+  name='TrafficInfo',
+  full_name='TrafficInfo',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='unique_id', full_name='TrafficInfo.unique_id', index=0,
+      number=1, type=9, cpp_type=9, label=2,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='aircraft_id', full_name='TrafficInfo.aircraft_id', index=1,
+      number=2, type=9, cpp_type=9, label=2,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='timestamp', full_name='TrafficInfo.timestamp', index=2,
+      number=3, type=4, cpp_type=4, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='recorded_time', full_name='TrafficInfo.recorded_time', index=3,
+      number=4, type=4, cpp_type=4, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='lat', full_name='TrafficInfo.lat', index=4,
+      number=5, type=17, cpp_type=1, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='lon', full_name='TrafficInfo.lon', index=5,
+      number=6, type=17, cpp_type=1, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='alt', full_name='TrafficInfo.alt', index=6,
+      number=7, type=17, cpp_type=1, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='groundspeed', full_name='TrafficInfo.groundspeed', index=7,
+      number=8, type=13, cpp_type=3, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='heading', full_name='TrafficInfo.heading', index=8,
+      number=9, type=13, cpp_type=3, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto2',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=112,
+  serialized_end=284,
+)
+
+
 _UAVHEARTBEAT = _descriptor.Descriptor(
   name='UavHeartbeat',
   full_name='UavHeartbeat',
@@ -142,8 +229,8 @@ _UAVHEARTBEAT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=111,
-  serialized_end=140,
+  serialized_start=286,
+  serialized_end=315,
 )
 
 
@@ -173,8 +260,8 @@ _MAVCOMMAND = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=142,
-  serialized_end=185,
+  serialized_start=317,
+  serialized_end=360,
 )
 
 
@@ -218,8 +305,8 @@ _FLIGHTPLAN_WAYPOINT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=241,
-  serialized_end=290,
+  serialized_start=416,
+  serialized_end=465,
 )
 
 _FLIGHTPLAN = _descriptor.Descriptor(
@@ -248,14 +335,15 @@ _FLIGHTPLAN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=187,
-  serialized_end=290,
+  serialized_start=362,
+  serialized_end=465,
 )
 
 _MAVCOMMAND.fields_by_name['command'].enum_type = _MAVCOMMANDS
 _FLIGHTPLAN_WAYPOINT.containing_type = _FLIGHTPLAN
 _FLIGHTPLAN.fields_by_name['waypoint'].message_type = _FLIGHTPLAN_WAYPOINT
 DESCRIPTOR.message_types_by_name['GPSMessage'] = _GPSMESSAGE
+DESCRIPTOR.message_types_by_name['TrafficInfo'] = _TRAFFICINFO
 DESCRIPTOR.message_types_by_name['UavHeartbeat'] = _UAVHEARTBEAT
 DESCRIPTOR.message_types_by_name['MavCommand'] = _MAVCOMMAND
 DESCRIPTOR.message_types_by_name['Flightplan'] = _FLIGHTPLAN
@@ -267,6 +355,13 @@ GPSMessage = _reflection.GeneratedProtocolMessageType('GPSMessage', (_message.Me
   # @@protoc_insertion_point(class_scope:GPSMessage)
   ))
 _sym_db.RegisterMessage(GPSMessage)
+
+TrafficInfo = _reflection.GeneratedProtocolMessageType('TrafficInfo', (_message.Message,), dict(
+  DESCRIPTOR = _TRAFFICINFO,
+  __module__ = 'messages_pb2'
+  # @@protoc_insertion_point(class_scope:TrafficInfo)
+  ))
+_sym_db.RegisterMessage(TrafficInfo)
 
 UavHeartbeat = _reflection.GeneratedProtocolMessageType('UavHeartbeat', (_message.Message,), dict(
   DESCRIPTOR = _UAVHEARTBEAT,
