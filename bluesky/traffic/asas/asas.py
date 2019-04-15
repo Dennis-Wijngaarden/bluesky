@@ -3,6 +3,7 @@
 import numpy as np
 import bluesky as bs
 from bluesky import settings
+from bluesky.tools.simtime import timed_function
 from bluesky.tools.aero import ft, nm
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.tools import geo
@@ -129,6 +130,8 @@ class ASAS(TrafficArrays):
         self.confpairs_all = list()  # All conflicts since simt=0
         self.lospairs_all = list()  # All losses of separation since simt=0
 
+        self.dcpa = np.array([])  # CPA distance
+
         # Conflict time and geometry data per conflict pair
         self.tcpa = np.array([])  # Time to CPA
         self.tLOS = np.array([])  # Time to start LoS
@@ -153,6 +156,8 @@ class ASAS(TrafficArrays):
         # Clear conflict list when switched off
         if not self.swasas:
             self.clearconfdb()
+            self.inconf = self.inconf&False  # Set in-conflict flag to False
+
         return True
 
     def clearconfdb(self):
@@ -485,8 +490,9 @@ class ASAS(TrafficArrays):
         # Remove pairs from the list that are past CPA or have deleted aircraft
         self.resopairs -= delpairs
 
-    def update(self, simt):
-        if not self.swasas or simt < self.tasas:
+    @timed_function('asas', dt=settings.asas_dt)
+    def update(self, dt):
+        if not self.swasas or bs.traf.ntraf == 0:
             return
 
         # increment trigger time for next ASAS step
@@ -494,7 +500,7 @@ class ASAS(TrafficArrays):
         if bs.traf.ntraf:
             # Conflict detection
             self.confpairs, self.lospairs, self.inconf, self.tcpamax, \
-                self.qdr, self.dist, self.tcpa, self.tLOS = \
+                self.qdr, self.dist, self.dcpa, self.tcpa, self.tLOS = \
                 self.cd.detect(bs.traf, bs.traf)
             
             # Save times of start of conflict
@@ -505,30 +511,26 @@ class ASAS(TrafficArrays):
             #     self.time_of_conflict[self.inconf == False] = 9999999999.
             #     self.time_of_conflict = np.minimum(self.time_of_conflict, times)
 
-            # self.time_since_conflict = bs.sim.simt - self.time_of_conflict
+        # Conflict resolution if there are conflicts
+        if self.confpairs:
+            self.cr.resolve(self, bs.traf)
 
-            # Conflict resolution if there are conflicts
-            if self.confpairs:
-                self.cr.resolve(self, bs.traf)
+        # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
+        self.resopairs.update(self.confpairs)
 
-            # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
-            self.resopairs.update(self.confpairs)
+        # confpairs has conflicts observed from both sides (a, b) and (b, a)
+        # confpairs_unique keeps only one of these
+        confpairs_unique = {frozenset(pair) for pair in self.confpairs}
+        lospairs_unique = {frozenset(pair) for pair in self.lospairs}
 
-            # confpairs has conflicts observed from both sides (a, b) and (b, a)
-            # confpairs_unique keeps only one of these
-            confpairs_unique = {frozenset(pair) for pair in self.confpairs}
-            lospairs_unique = {frozenset(pair) for pair in self.lospairs}
+        self.confpairs_all.extend(confpairs_unique - self.confpairs_unique)
+        self.lospairs_all.extend(lospairs_unique - self.lospairs_unique)
 
-            self.confpairs_all.extend(confpairs_unique - self.confpairs_unique)
-            self.lospairs_all.extend(lospairs_unique - self.lospairs_unique)
+        # Update confpairs_unique and lospairs_unique
+        self.confpairs_unique = confpairs_unique
+        self.lospairs_unique = lospairs_unique
 
-            # Update confpairs_unique and lospairs_unique
-            self.confpairs_unique = confpairs_unique
-            self.lospairs_unique = lospairs_unique
-
-            self.detect_to_next_wp()
-
-            self.ResumeNav()
+        self.ResumeNav()
 
         # iconf0 = np.array(self.iconf)
         #
