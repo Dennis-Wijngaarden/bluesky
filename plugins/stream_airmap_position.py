@@ -54,7 +54,7 @@ class Airmap_streamer(object):
         self.enabled = flag 
         # Enable socket when switched on
         if (prev_flag == False and flag == True):
-            self.s1.bind('ipc:///tmp/gps_position.sock'.encode('utf-8'))
+            self.s1.bind('ipc:///tmp/gps_position_0'.encode('utf-8'))
         # Swirch off airmap streamer
         if (prev_flag == True and flag == False):
             self.s1.close()

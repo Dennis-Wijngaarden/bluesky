@@ -498,14 +498,14 @@ class ASAS(TrafficArrays):
                 self.cd.detect(bs.traf, bs.traf)
             
             # Save times of start of conflict
-            times = np.where(self.inconf, bs.sim.simt, 9999999999.)
-            if len(self.time_of_conflict) == 0:
-                self.time_of_conflict = times
-            else:
-                self.time_of_conflict[self.inconf == False] = 9999999999.
-                self.time_of_conflict = np.minimum(self.time_of_conflict, times)
+            # times = np.where(self.inconf, bs.sim.simt, 9999999999.)
+            # if len(self.time_of_conflict) == 0:
+            #     self.time_of_conflict = times
+            # else:
+            #     self.time_of_conflict[self.inconf == False] = 9999999999.
+            #     self.time_of_conflict = np.minimum(self.time_of_conflict, times)
 
-            self.time_since_conflict = bs.sim.simt - self.time_of_conflict
+            # self.time_since_conflict = bs.sim.simt - self.time_of_conflict
 
             # Conflict resolution if there are conflicts
             if self.confpairs:
