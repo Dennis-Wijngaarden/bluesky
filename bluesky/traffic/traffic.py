@@ -127,6 +127,7 @@ class Traffic(TrafficArrays):
             self.Vmax  = np.array([])
             self.Vsmin = np.array([])
             self.Vsmax = np.array([])
+            self.asas_on = np.array([])
 
             # Whether to perform LNAV and VNAV
             self.swlnav    = np.array([], dtype=np.bool)
@@ -337,6 +338,7 @@ class Traffic(TrafficArrays):
         self.Vmax[-n:]      = np.ones(n, dtype=np.float64) * settings.asas_vmax * nm / 3600. # to m/s
         self.Vsmin[-n:]     = np.zeros(n, dtype=np.float64)
         self.Vsmax[-n:]     = np.zeros(n, dtype=np.float64)
+        self.asas_on[-n:]   = np.zeros(n, dtype=np.bool)
 
         # Finally call create for child TrafficArrays. This only needs to be done
         # manually in Traffic.
@@ -855,3 +857,7 @@ class Traffic(TrafficArrays):
         """ Set a custom minimum speed for ASAS in m/s"""
         self.Vmin[idx] = vmin
         self.Vmax[idx] = vmax
+
+    def setasason(self, idx, state):
+        """ Set the asas on or off for specific aircraft (to be used in combination with SSDUAV) """
+        self.asas_on[idx] = state

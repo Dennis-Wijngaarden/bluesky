@@ -227,6 +227,12 @@ def init(startup_scnfile):
             bs.traf.asas.toggle,
             "Airborne Separation Assurance System switch"
         ],
+        "SETASAS": [
+            "SETASAS acid, ON/OFF",
+            "acid, bool",
+            bs.traf.setasason,
+            "switches ASAS ON/OFF for drone avoidance algorithm"
+        ],
         "ASASV": [
             "ASASV MAX/MIN SPD (TAS in kts)",
             "[txt,float]",
