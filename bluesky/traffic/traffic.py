@@ -128,6 +128,7 @@ class Traffic(TrafficArrays):
             self.Vsmin = np.array([])
             self.Vsmax = np.array([])
             self.asas_on = np.array([])
+            self.geofence = []
 
             # Whether to perform LNAV and VNAV
             self.swlnav    = np.array([], dtype=np.bool)
@@ -339,6 +340,7 @@ class Traffic(TrafficArrays):
         self.Vsmin[-n:]     = np.zeros(n, dtype=np.float64)
         self.Vsmax[-n:]     = np.zeros(n, dtype=np.float64)
         self.asas_on[-n:]   = np.zeros(n, dtype=np.bool)
+        self.geofence[-n:]  = n * [None]
 
         # Finally call create for child TrafficArrays. This only needs to be done
         # manually in Traffic.
@@ -861,3 +863,15 @@ class Traffic(TrafficArrays):
     def setasason(self, idx, state):
         """ Set the asas on or off for specific aircraft (to be used in combination with SSDUAV) """
         self.asas_on[idx] = state
+
+    def setgeofence(self, idx, *args):
+        """SETGEOFENCE acid, [(lat,lon), (lat,lon), (lat,lon), ...]"""
+        if len(args) < 6:
+            return False, "not enough points given"
+
+        geofence = []
+        
+        for i in range(0, len(args), 2):
+            geofence.append((args[i], args[i+1]))   # Append lat and lon as (lat, lon) to geofence list
+        self.geofence[idx] = geofence
+        return True

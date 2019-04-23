@@ -333,12 +333,12 @@ class ASAS(TrafficArrays):
 
     def SetPrio(self, flag=None, priocode="FF1"):
         '''Set the prio switch and the type of prio '''
-        if self.cr_name == "SSD":
+        if self.cr_name == "SSD" or self.cr_name == "SSDUAV":
             options = ["RS1","RS2","RS3","RS4","RS5","RS6","RS7","RS8","RS9"]
         else:
             options = ["FF1", "FF2", "FF3", "LAY1", "LAY2"]
         if flag is None:
-            if self.cr_name == "SSD":
+            if self.cr_name == "SSD" or self.cr_name == "SSDUAV":
                 return True, "PRIORULES [ON/OFF] [PRIOCODE]"  + \
                              "\nAvailable priority codes: " + \
                              "\n     RS1:  Shortest way out" + \
@@ -468,7 +468,7 @@ class ASAS(TrafficArrays):
                 # then they it is a bouncing conflict. ASAS should stay active until
                 # the bouncing stops.
                 is_bouncing = abs(bs.traf.trk[idx1] - bs.traf.trk[idx2]) < 30.0 and hdist < (R * self.mar)
-
+            
             # Start recovery for ownship if intruder is deleted, or if past CPA
             # and not in horizontal LOS or a bouncing conflict
             if idx2 >= 0 and (not past_cpa or hor_los or is_bouncing):

@@ -474,6 +474,12 @@ def init(startup_scnfile):
             bs.sim.setFixdt,
             "Fix the time step"
         ],
+        "GEOFENCE": [
+            "GEOFENCE acid, [lat,lon,lat,lon,lat,lon,...]",
+            "acid,[latlon,latlon,latlon,...]",
+            lambda acid, *args: bs.traf.setgeofence(acid, *args),
+            "Set the geofence for a specific air vehicle"
+        ],
         "GETWIND": [
             "GETWIND lat,lon,[alt]",
             "latlon,[alt]",

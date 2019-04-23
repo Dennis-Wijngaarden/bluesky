@@ -30,7 +30,6 @@ def detect(asas, traf):
 
 def resolve(asas, traf):
     """ Resolve all current conflicts """
-
     # Check if ASAS is ON first!
     if not asas.swasas:
         return
@@ -96,6 +95,10 @@ def ConstructSSD(asas, traf):
     gseast  = traf.gseast
     ntraf   = traf.ntraf
     hdg     = traf.hdg
+    gs_ap   = traf.ap.tas
+    hdg_ap  = traf.ap.trk
+    apnorth = np.cos(hdg_ap / 180 * np.pi) * gs_ap
+    apeast  = np.sin(hdg_ap / 180 * np.pi) * gs_ap
 
     # Local variables, will be put into asas later
     FRV_loc          = [None] * traf.ntraf
@@ -223,6 +226,10 @@ def ConstructSSD(asas, traf):
                 # Add scaled VO to clipper
                 pc.AddPath(VO, pyclipper.PT_CLIP, True)
 
+                if asas.priocode == "RS5":
+                    if pyclipper.PointInPolygon(pyclipper.scale_to_clipper((apeast[i],apnorth[i])),VO):
+                        asas.ap_free[i] = False
+
                 # Execute clipper command
                 FRV = pyclipper.scale_from_clipper(pc.Execute(pyclipper.CT_INTERSECTION, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO))
                 ARV = pc.Execute(pyclipper.CT_DIFFERENCE, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO)
@@ -278,56 +285,65 @@ def ConstructSSD(asas, traf):
 
 def calculate_resolution(asas, traf):
     """ Calculates closest conflict-free point according to ruleset """
-    ARV = asas.ARV_calc
-    gsnorth = traf.gsnorth
-    gseast  = traf.gseast
+    ARV     = asas.ARV_calc
+    if asas.priocode == "RS5":
+        gsnorth = np.cos(traf.ap.trk / 180 * np.pi) * traf.ap.tas
+        gseast  = np.sin(traf.ap.trk / 180 * np.pi) * traf.ap.tas
+    else:
+        gsnorth = traf.gsnorth
+        gseast  = traf.gseast
     ntraf   = traf.ntraf
 
     # Loop through SSDs of all aircraft
     for i in range(ntraf):
         # Only those that are in conflict need to resolve
         if asas.inconf[i] and len(ARV[i]) > 0:
-            # Loop through all exteriors and append. Afterwards concatenate
-            p = []
-            q = []
-            for j in range(len(ARV[i])):
-                p.append(np.array(ARV[i][j]))
-                q.append(np.diff(np.row_stack((p[j], p[j][0])), axis=0))
-            p = np.concatenate(p)
-            q = np.concatenate(q)
-            # Calculate squared distance between edges
-            l2 = np.sum(q ** 2, axis=1)
-            # Catch l2 == 0 (exception)
-            same = l2 < 1e-8
-            l2[same] = 1.
-            # Calc t
-            t = np.sum((np.array([gseast[i], gsnorth[i]]) - p) * q, axis=1) / l2
-            # Speed of boolean indices only slightly faster (negligible)
-            # t must be limited between 0 and 1
-            t = np.clip(t, 0., 1.)
-            t[same] = 0.
-            # Calculate closest point to each edge
-            x1 = p[:,0] + t * q[:,0]
-            y1 = p[:,1] + t * q[:,1]
-            # Get distance squared
-            d2 = (x1 - gseast[i]) ** 2 + (y1 - gsnorth[i]) ** 2
-            # Sort distance
-            ind = np.argsort(d2)
-            x1  = x1[ind]
-            y1  = y1[ind]
+            # First check if AP-setting is free
+            if asas.ap_free[i] and asas.priocode == "RS5":
+                asas.asase[i] = gseast[i]
+                asas.asasn[i] = gsnorth[i]
+            else:
+                # Loop through all exteriors and append. Afterwards concatenate
+                p = []
+                q = []
+                for j in range(len(ARV[i])):
+                    p.append(np.array(ARV[i][j]))
+                    q.append(np.diff(np.row_stack((p[j], p[j][0])), axis=0))
+                p = np.concatenate(p)
+                q = np.concatenate(q)
+                # Calculate squared distance between edges
+                l2 = np.sum(q ** 2, axis=1)
+                # Catch l2 == 0 (exception)
+                same = l2 < 1e-8
+                l2[same] = 1.
+                # Calc t
+                t = np.sum((np.array([gseast[i], gsnorth[i]]) - p) * q, axis=1) / l2
+                # Speed of boolean indices only slightly faster (negligible)
+                # t must be limited between 0 and 1
+                t = np.clip(t, 0., 1.)
+                t[same] = 0.
+                # Calculate closest point to each edge
+                x1 = p[:,0] + t * q[:,0]
+                y1 = p[:,1] + t * q[:,1]
+                # Get distance squared
+                d2 = (x1 - gseast[i]) ** 2 + (y1 - gsnorth[i]) ** 2
+                # Sort distance
+                ind = np.argsort(d2)
+                x1  = x1[ind]
+                y1  = y1[ind]
 
-            #print("i = ", i, "d2_min = ", d2[ind][0])
+                #print("i = ", i, "d2_min = ", d2[ind][0])
 
-            # Store result in asass
-            asas.asase[i] = x1[0]
-            asas.asasn[i] = y1[0]
+                # Store result in asass
+                asas.asase[i] = x1[0]
+                asas.asasn[i] = y1[0]
 
-            #print("east: ", x1[0], " north: ", y1[0])
-            #print("gseast: ", gseast[i], " gsnorth: ", gsnorth[i])
+                #print("east: ", x1[0], " north: ", y1[0])
+                #print("gseast: ", gseast[i], " gsnorth: ", gsnorth[i])
 
-            # asaseval should be set to True now
-            if not asas.asaseval:
-                asas.asaseval = True
+                # asaseval should be set to True now
+                if not asas.asaseval:
+                    asas.asaseval = True
         
         # Those that are not in conflict will be assigned zeros
         # Or those that have no solutions (full ARV)
