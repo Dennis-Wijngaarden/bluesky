@@ -549,6 +549,12 @@ def init(startup_scnfile):
             bs.traf.ap.setLNAV,
             "LNAV (lateral FMS mode) switch for autopilot"
         ],
+        "LOADGEO": [
+            "LOADGEO acid, filename",
+            "acid,string",
+            bs.traf.opengeo,
+            "LOADGEO loads the geofence and flightplan of a UAV"
+        ],
         "LSVAR": [
             "LSVAR path.to.variable",
             "[string]",

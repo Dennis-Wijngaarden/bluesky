@@ -6,6 +6,7 @@ except ImportError:
     # In python <3.3 collections.abc doesn't exist
     from collections import Collection
 import numpy as np
+import json
 from math import *
 from random import randint
 import bluesky as bs
@@ -13,6 +14,7 @@ from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, \
                          vatmos,  vtas2cas, vtas2mach, vcasormach
+from bluesky import stack
 
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
@@ -33,7 +35,7 @@ from bluesky import settings
 settings.set_variable_defaults(performance_model='openap', snapdt=1.0, instdt=1.0, skydt=1.0, asas_pzr=5.0, asas_pzh=1000.0)
 
 # Register specific CD&R settings for drone categories [1-3]
-settings.set_variable_defaults(asas_pzr_cat = [settings.asas_pzr, 25.0 / nm, 25.0 / nm, 25.0 / nm], \
+settings.set_variable_defaults(asas_pzr_cat = [settings.asas_pzr, 100.0 / nm, 100.0 / nm, 100.0 / nm], \
                                asas_pzh_cat = [settings.asas_pzh, 1000.0 / ft, 1000.0 / ft, 1000.0 / ft], \
                                asas_tla_cat = [300., 60.0, 60.0, 60.0])
 
@@ -869,9 +871,61 @@ class Traffic(TrafficArrays):
         if len(args) < 6:
             return False, "not enough points given"
 
-        geofence = []
+        geofence_list   = []
+        geofence_string = ""
         
         for i in range(0, len(args), 2):
-            geofence.append((args[i], args[i+1]))   # Append lat and lon as (lat, lon) to geofence list
-        self.geofence[idx] = geofence
-        return True
+            geofence_list.append((args[i], args[i+1]))   # Append lat and lon as (lat, lon) to geofence list
+            geofence_string = geofence_string + " " + str(args[i]) + " " + str(args[i+1])
+        self.geofence[idx] = geofence_list
+        stack.stack("POLY " + "GEO_" + self.id[idx] + geofence_string)
+
+    def opengeo(self, idx, filename):
+        # Clean up filename
+        filename = filename.strip()
+        geofile = bs.settings.scenario_path + "/uav/geojson/" + filename
+
+        try:
+            with open(geofile, 'r') as f:
+                geodict = json.load(f)
+                
+        except:
+            return False, "Error reading file"
+
+        features = geodict['features']
+
+        if len(features) > 2:
+            return False, "Error: too many geo features given"
+
+        geofence_coords = None
+        flightplan_coords = None
+        for i in range(len(features)):
+            if features[i]['properties']['name'] == 'geofence':
+                geofence_coords = features[i]['geometry']['coordinates'][0]
+            if features[i]['properties']['name'] == 'flightplan':
+                flightplan_coords = features[i]['geometry']['coordinates']
+                flightplan_height = float(features[i]['properties']['height'])
+                flightplan_speed = float(features[i]['properties']['speed'])
+
+        if geofence_coords == None:
+            return False, "Error: No geofence defined in geojson file"
+        if flightplan_coords == None:
+            return False, "Error: No flightplan defines in geojson file"
+
+        geofence_string = ''
+        for i in range(len(geofence_coords)-1):
+            lat_string = str(geofence_coords[i][1])
+            lon_string = str(geofence_coords[i][0])
+            geofence_string = geofence_string + ' ' + lat_string + ' ' + lon_string
+        
+        stack.stack('GEOFENCE ' + self.id[idx] + geofence_string)
+
+        flightplan_speed_kts = flightplan_speed / kts
+        flightplan_height_ft = flightplan_height / ft
+        for i in range(len(flightplan_coords)):
+            lat_string = str(flightplan_coords[i][1])
+            lon_string = str(flightplan_coords[i][0])
+            if i != len(flightplan_coords):
+                stack.stack('ADDWPT ' + self.id[idx] + ' ' + lat_string + ' ' + lon_string + ' ' + str(flightplan_height_ft) + ' ' + str(flightplan_speed_kts))
+            else:
+                stack.stack('ADDWPT ' + self.id[idx] + ' ' + lat_string + ' ' + lon_string + ' 0 0')

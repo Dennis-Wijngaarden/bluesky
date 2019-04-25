@@ -226,6 +226,11 @@ def ConstructSSD(asas, traf):
                 # Add scaled VO to clipper
                 pc.AddPath(VO, pyclipper.PT_CLIP, True)
 
+                geofence_polygons = calc_geofence_polygon(traf, i, i_other, 100)
+                # Convert to form pyclipper wants it
+                VOs = pyclipper.scale_to_clipper(tuple(map(lambda x: tuple(map(lambda y: tuple(y), x)), geofence_polygons)))
+                pc.AddPaths(VOs, pyclipper.PT_CLIP, True)
+
                 if asas.priocode == "RS5":
                     if pyclipper.PointInPolygon(pyclipper.scale_to_clipper((apeast[i],apnorth[i])),VO):
                         asas.ap_free[i] = False
@@ -350,6 +355,138 @@ def calculate_resolution(asas, traf):
         else:
             asas.asase[i] = 0.
             asas.asasn[i] = 0.
+
+def calc_geofence_polygon(traf, i_own, i_int, N):
+    """Calculates the polygon due to a geofence with resolution n"""
+
+    # first calculate the relative position of the intruder with respect to the own_aircraft
+    r = rwgs84(traf.lat[i_own]) # Earth radius [m] approximated using wgs84
+
+    lat_diff = np.radians(traf.lat[i_int] - traf.lat[i_own])
+    lon_diff = np.radians(traf.lon[i_int] - traf.lon[i_own])
+    if lon_diff > np.pi:
+        lon_diff = lon_diff - 2. * np.pi
+
+    coslat = np.cos(np.radians(traf.lat[i_own]))
+
+    x_int_x = lon_diff * coslat * r # Relative position of intruder in x (east) direction
+    x_int_y = lat_diff * r          # Relative position of intryder in y (north) direction
+    v_int_x = traf.gseast[i_int]        # Intruder velocity [m/s] in east direction
+    v_int_y = traf.gsnorth[i_int]       # Intruder velocity [m/s] in north direction
+
+    # Geofence equations
+    # Calculate relative positions of the geofence points wrt to the own aircraft
+    geofence_xy = []
+
+    for i in range(len(traf.geofence[i_own])):
+        lat_diff = np.radians(traf.geofence[i_own][i][0] - traf.lat[i_own])
+        lon_diff = np.radians(traf.geofence[i_own][i][1] - traf.lon[i_own])
+        if lon_diff > np.pi:
+            lon_diff = lon_diff - 2. * np.pi
+        geofence_xy.append([lon_diff * coslat * r, lat_diff * r])
+
+    geofence_a = []
+    geofence_n = []
+    geofence_distv = []
+    geofence_dist = []
+    geofence_rotation = []
+    for i in range(len(geofence_xy)):
+        if i == len(geofence_xy) - 1:
+            i_next = 0
+        else:
+            i_next = i + 1
+        a, n = line_vec_from_vectors(np.array([geofence_xy[i]]).T, np.array([geofence_xy[i_next]]).T)
+        geofence_a.append(a)
+        geofence_n.append(n)
+        geofence_distv.append(a - np.vdot(a, n) * n)
+        geofence_dist.append(geofence_distv[i][0][0]**2 + geofence_distv[i][1][0]**2)
+        geofence_rotation.append(np.arctan2(geofence_distv[i][1][0], geofence_distv[i][0][0]) - 0.5 * np.pi)
+    
+    # Now loop over geofence and return polygon
+    geofence_polygons = []
+    for i in range(len(geofence_xy)):
+        rotation_geo = geofence_rotation[i]
+        v_int_perp = v_int_y * np.cos(rotation_geo) - v_int_x * np.sin(rotation_geo)
+
+        v_int_parallel = v_int_x * np.cos(rotation_geo) + v_int_y * np.sin(rotation_geo)
+        
+        d_geo = geofence_dist[i]
+
+        x_int_parallel  = x_int_x * np.cos(rotation_geo) + x_int_y * np.sin(rotation_geo)
+        x_int_perp      = x_int_y * np.cos(rotation_geo) - x_int_x * np.sin(rotation_geo)
+
+        phi = 0.5 * np.arctan2(-x_int_parallel, x_int_perp)
+
+        # Create non rotated ellipse
+        K_2_parallel = 1. - x_int_perp / d_geo * np.sin(phi)**2 / (np.cos(phi)**2 - np.sin(phi)**2)
+        K_parallel = -np.sin(phi) * v_int_perp * (2. + x_int_perp / d_geo)
+        c_parallel = -K_parallel / (2. * K_2_parallel)
+
+        K_2_perp = 1. + x_int_perp / d_geo * np.cos(phi)**2 / (np.cos(phi)**2 - np.sin(phi)**2)
+        K_perp = -np.cos(phi) * v_int_perp * (2. + x_int_perp / d_geo)
+        c_perp = -K_perp / (2. * K_2_perp)
+
+        K = c_parallel**2 * K_2_parallel + c_perp**2 * K_2_perp - v_int_perp**2
+
+        a_2 = K / K_2_parallel
+        b_2 = K / K_2_perp
+
+        n_points = N
+
+        # if an ellipse
+        if b_2 > 0.:
+            if v_int_perp < 0.:
+                continue
+            a = np.sqrt(a_2)
+            b = np.sqrt(b_2)
+
+            a_2_over_b_2 = a_2/b_2
+
+            if a_2_over_b_2 > 200.:
+                a_2_over_b_2 = 200.
+
+            angles = np.linspace(-np.pi, np.pi, n_points)
+            angles = angles - np.sin(angles * 2.) * a_2_over_b_2 / 400.
+
+            v_res_x_basic = a * np.cos(angles)
+            v_res_y_basic = b * np.sin(angles)
+
+        # If an hyperbola
+        else:
+            a = np.sqrt(a_2)
+            b = np.sqrt(-b_2)
+            
+            x = abs(c_parallel) + 2. * traf.Vmax[i_own]
+            
+            angle_max = np.log(x / a + np.sqrt(x**2 / a**2 - 1.))
+            angles = np.linspace(-angle_max, angle_max, n_points)
+            
+            if phi >= 0.:
+                v_res_x_basic = a * np.cosh(angles)
+            else:
+                v_res_x_basic = -a * np.cosh(angles)
+            v_res_y_basic = b * np.sinh(angles)
+
+        v_res_x_rotated = v_res_x_basic * np.cos(phi + rotation_geo) - v_res_y_basic * np.sin(phi + rotation_geo) 
+        v_res_y_rotated = v_res_y_basic * np.cos(phi + rotation_geo) + v_res_x_basic * np.sin(phi + rotation_geo) 
+            
+        c_x = c_parallel * np.cos(phi + rotation_geo) - c_perp * np.sin(phi + rotation_geo) + v_int_parallel * np.cos(rotation_geo)
+        c_y = c_perp * np.cos(phi + rotation_geo) + c_parallel * np.sin(phi + rotation_geo) + v_int_parallel * np.sin(rotation_geo)
+            
+        v_res_x = v_res_x_rotated + c_x
+        v_res_y = v_res_y_rotated + c_y
+
+        geofence_polygons.append(np.array([v_res_x, v_res_y]).T)
+        
+    return geofence_polygons
+
+def line_vec_from_vectors(vector0, vector1):
+    # Vector equation x = a + tn
+    a = vector0
+    diff = vector1 - vector0
+    n = diff / np.sqrt(diff[0][0]**2 + diff[1][0]**2)
+    return a, n  
+
  
 def rwgs84(latd):
     """ Calculate the earth radius with WGS'84 geoid definition """
