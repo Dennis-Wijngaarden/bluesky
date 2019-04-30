@@ -503,6 +503,8 @@ class ASAS(TrafficArrays):
                 self.qdr, self.dist, self.dcpa, self.tcpa, self.tLOS = \
                 self.cd.detect(bs.traf, bs.traf)
             
+            if self.cr_name == 'SSDUAV':
+                self.cr.detect(bs.traf.asas, bs.traf)
             # Save times of start of conflict
             # times = np.where(self.inconf, bs.sim.simt, 9999999999.)
             # if len(self.time_of_conflict) == 0:

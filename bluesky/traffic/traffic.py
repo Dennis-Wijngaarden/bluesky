@@ -35,7 +35,7 @@ from bluesky import settings
 settings.set_variable_defaults(performance_model='openap', snapdt=1.0, instdt=1.0, skydt=1.0, asas_pzr=5.0, asas_pzh=1000.0)
 
 # Register specific CD&R settings for drone categories [1-3]
-settings.set_variable_defaults(asas_pzr_cat = [settings.asas_pzr, 100.0 / nm, 100.0 / nm, 100.0 / nm], \
+settings.set_variable_defaults(asas_pzr_cat = [settings.asas_pzr, 150.0 / nm, 150.0 / nm, 150.0 / nm], \
                                asas_pzh_cat = [settings.asas_pzh, 1000.0 / ft, 1000.0 / ft, 1000.0 / ft], \
                                asas_tla_cat = [300., 60.0, 60.0, 60.0])
 
@@ -131,6 +131,7 @@ class Traffic(TrafficArrays):
             self.Vsmax = np.array([])
             self.asas_on = np.array([])
             self.geofence = []
+            self.SSD_plot_on = np.array([], dtype=np.bool)
 
             # Whether to perform LNAV and VNAV
             self.swlnav    = np.array([], dtype=np.bool)
@@ -343,6 +344,7 @@ class Traffic(TrafficArrays):
         self.Vsmax[-n:]     = np.zeros(n, dtype=np.float64)
         self.asas_on[-n:]   = np.zeros(n, dtype=np.bool)
         self.geofence[-n:]  = n * [None]
+        self.SSD_plot_on[-n:] = np.zeros(n, dtype=np.bool)
 
         # Finally call create for child TrafficArrays. This only needs to be done
         # manually in Traffic.

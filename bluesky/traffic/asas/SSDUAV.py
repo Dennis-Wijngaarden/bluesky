@@ -26,6 +26,7 @@ def start(asas):
 def detect(asas, traf):
     """ Detect all current conflicts """
     # Construct the SSD
+    InitializeSSD(asas, traf.ntraf)
     ConstructSSD(asas, traf)
 
 def resolve(asas, traf):
@@ -34,10 +35,10 @@ def resolve(asas, traf):
     if not asas.swasas:
         return
 
-    InitializeSSD(asas, traf.ntraf)
+    #InitializeSSD(asas, traf.ntraf)
 
     # Construct the SSD
-    ConstructSSD(asas, traf)
+    #ConstructSSD(asas, traf)
 
     # Get resolved speed-vector
     calculate_resolution(asas, traf)
@@ -136,7 +137,7 @@ def ConstructSSD(asas, traf):
         circle_lst = [list(map(list, np.flipud(xyc * vmax[i]))), list(map(list , xyc * vmin[i]))]
 
         # Calculate SSD only for aircraft in conflict (See formulas appendix)
-        if asas.inconf[i]:
+        if True: #asas.inconf[i]:
             # Check if indiviual ASAS has been switched on
             if not traf.asas_on[i]:
                 # Map them into the format ARV wants. Outercircle CCW, innercircle CW
@@ -200,7 +201,7 @@ def ConstructSSD(asas, traf):
                 # Limit half-angle alpha to 89.982 deg. Ensures that VO can be constructed
                 if alpha > alpham:
                     alpha = alpham
-                #print("print: ", hsepm[i])
+                    
                 # Relevant sin/cos/tan
                 sinqdr = np.sin(qdr) # East
                 cosqdr = np.cos(qdr) # North
@@ -226,10 +227,11 @@ def ConstructSSD(asas, traf):
                 # Add scaled VO to clipper
                 pc.AddPath(VO, pyclipper.PT_CLIP, True)
 
-                geofence_polygons = calc_geofence_polygon(traf, i, i_other, 100)
-                # Convert to form pyclipper wants it
-                VOs = pyclipper.scale_to_clipper(tuple(map(lambda x: tuple(map(lambda y: tuple(y), x)), geofence_polygons)))
-                pc.AddPaths(VOs, pyclipper.PT_CLIP, True)
+                geofence_polygons = calc_geofence_polygon(traf, i, i_other, 100, hsepm_combined)
+                if geofence_polygons != None:
+                    # Convert to form pyclipper wants it
+                    VOs = pyclipper.scale_to_clipper(tuple(map(lambda x: tuple(map(lambda y: tuple(y), x)), geofence_polygons)))
+                    pc.AddPaths(VOs, pyclipper.PT_CLIP, True)
 
                 if asas.priocode == "RS5":
                     if pyclipper.PointInPolygon(pyclipper.scale_to_clipper((apeast[i],apnorth[i])),VO):
@@ -337,14 +339,10 @@ def calculate_resolution(asas, traf):
                 x1  = x1[ind]
                 y1  = y1[ind]
 
-                #print("i = ", i, "d2_min = ", d2[ind][0])
-
+                # Check solution (within geofence and if path is free at CPA)
                 # Store result in asass
                 asas.asase[i] = x1[0]
                 asas.asasn[i] = y1[0]
-
-                #print("east: ", x1[0], " north: ", y1[0])
-                #print("gseast: ", gseast[i], " gsnorth: ", gsnorth[i])
 
                 # asaseval should be set to True now
                 if not asas.asaseval:
@@ -356,9 +354,10 @@ def calculate_resolution(asas, traf):
             asas.asase[i] = 0.
             asas.asasn[i] = 0.
 
-def calc_geofence_polygon(traf, i_own, i_int, N):
+def calc_geofence_polygon(traf, i_own, i_int, N, seperation):
     """Calculates the polygon due to a geofence with resolution n"""
-
+    if traf.gs[i_int] < 0.1:
+        return None
     # first calculate the relative position of the intruder with respect to the own_aircraft
     r = rwgs84(traf.lat[i_own]) # Earth radius [m] approximated using wgs84
 
@@ -369,8 +368,8 @@ def calc_geofence_polygon(traf, i_own, i_int, N):
 
     coslat = np.cos(np.radians(traf.lat[i_own]))
 
-    x_int_x = lon_diff * coslat * r # Relative position of intruder in x (east) direction
-    x_int_y = lat_diff * r          # Relative position of intryder in y (north) direction
+    x_int_x = -lon_diff * coslat * r # Relative position of intruder in x (east) direction
+    x_int_y = -lat_diff * r          # Relative position of intryder in y (north) direction
     v_int_x = traf.gseast[i_int]        # Intruder velocity [m/s] in east direction
     v_int_y = traf.gsnorth[i_int]       # Intruder velocity [m/s] in north direction
 
@@ -399,7 +398,7 @@ def calc_geofence_polygon(traf, i_own, i_int, N):
         geofence_a.append(a)
         geofence_n.append(n)
         geofence_distv.append(a - np.vdot(a, n) * n)
-        geofence_dist.append(geofence_distv[i][0][0]**2 + geofence_distv[i][1][0]**2)
+        geofence_dist.append(np.sqrt(geofence_distv[i][0][0]**2 + geofence_distv[i][1][0]**2))
         geofence_rotation.append(np.arctan2(geofence_distv[i][1][0], geofence_distv[i][0][0]) - 0.5 * np.pi)
     
     # Now loop over geofence and return polygon
@@ -407,9 +406,8 @@ def calc_geofence_polygon(traf, i_own, i_int, N):
     for i in range(len(geofence_xy)):
         rotation_geo = geofence_rotation[i]
         v_int_perp = v_int_y * np.cos(rotation_geo) - v_int_x * np.sin(rotation_geo)
-
         v_int_parallel = v_int_x * np.cos(rotation_geo) + v_int_y * np.sin(rotation_geo)
-        
+
         d_geo = geofence_dist[i]
 
         x_int_parallel  = x_int_x * np.cos(rotation_geo) + x_int_y * np.sin(rotation_geo)
@@ -459,13 +457,15 @@ def calc_geofence_polygon(traf, i_own, i_int, N):
             x = abs(c_parallel) + 2. * traf.Vmax[i_own]
             
             angle_max = np.log(x / a + np.sqrt(x**2 / a**2 - 1.))
-            angles = np.linspace(-angle_max, angle_max, n_points)
             
             if phi >= 0.:
+                angles = np.linspace(angle_max, -angle_max, n_points)
                 v_res_x_basic = a * np.cosh(angles)
+                v_res_y_basic = b * np.sinh(angles)
             else:
+                angles = np.linspace(-angle_max, angle_max, n_points)
                 v_res_x_basic = -a * np.cosh(angles)
-            v_res_y_basic = b * np.sinh(angles)
+                v_res_y_basic = b * np.sinh(angles)
 
         v_res_x_rotated = v_res_x_basic * np.cos(phi + rotation_geo) - v_res_y_basic * np.sin(phi + rotation_geo) 
         v_res_y_rotated = v_res_y_basic * np.cos(phi + rotation_geo) + v_res_x_basic * np.sin(phi + rotation_geo) 
