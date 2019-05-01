@@ -906,7 +906,7 @@ class Traffic(TrafficArrays):
                 geofence_coords = features[i]['geometry']['coordinates'][0]
             if features[i]['properties']['name'] == 'flightplan':
                 flightplan_coords = features[i]['geometry']['coordinates']
-                flightplan_height = float(features[i]['properties']['height'])
+                flightplan_height = float(features[i]['properties']['altitude'])
                 flightplan_speed = float(features[i]['properties']['speed'])
 
         if geofence_coords == None:
