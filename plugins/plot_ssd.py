@@ -136,6 +136,16 @@ class SSD_plot_element(object):
         # make inner circle red
         self.ax.fill(x_SSD_inner, y_SSD_inner, color = '#ffffff') #white
 
+        # Plot speed arrow
+        self.ax.arrow(x=0,y=0, dx=v_own[0], dy=v_own[1], color = '#00CC00', head_width=1)
+
+        # Plot solution point
+        if traf.asas.inconf[idx]:
+            try:
+                self.ax.plot(traf.asas.asase[idx],traf.asas.asasn[idx], 'd', color = '#000099')
+            except:
+                pass
+
         self.ax.axis('equal')
         self.fig.canvas.draw()
 
