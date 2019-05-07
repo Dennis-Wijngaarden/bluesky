@@ -25,36 +25,71 @@ def init_plugin():
     }
 
     stackfunctions = {
-        'AIRMAPSTREAM': [
-            'AIRMAPSTREAM ON/OFF',
-            '[onoff]',
+        'AIRMAPSTREAMON': [
+            'AIRMAPSTREAMON acid, instance',
+            'acid,int',
             airmap_streamer.enable,
-            'AIRMAP STREAM']
+            'Switch On Airmap Stream'],
+        'AIRMAPSTREAMOFF': [
+            'AIRMAPSTREAMOFF acid',
+            'acid',
+            airmap_streamer.disable,
+            'Switch Off Airmap Stream']
     }
 
     return config, stackfunctions
 
 class Airmap_streamer(object):
     def __init__(self):
-        self.enabled = False
-        self.s1 = Socket(PUB)
-        self.gps_message = messages_pb2.GPSMessage()
+        self.sockets = {} # acid : Airmap_stream_socket
 
     def update(self):
-        if self.enabled:
-            self.gps_message.timestamp = 0 #bs.sim.simt
-            self.gps_message.lat = int(bs.traf.lat[0] * 10. ** 7) #521234157
-            self.gps_message.lon = int(bs.traf.lon[0] * 10. ** 7) #41122334
-            self.gps_message.alt_msl = int(bs.traf.alt[0] * ft * 1000.)  #10
-            self.gps_message.alt_agl = int(bs.traf.alt[0] * ft * 1000.)  #10
-            self.s1.send(self.gps_message.SerializeToString())
+        for key in self.sockets.keys():
+            self.sockets[key].update()
 
-    def enable(self, flag=True):
-        prev_flag = self.enabled
-        self.enabled = flag 
-        # Enable socket when switched on
-        if (prev_flag == False and flag == True):
-            self.s1.bind('ipc:///tmp/gps_position_0'.encode('utf-8'))
-        # Swirch off airmap streamer
-        if (prev_flag == True and flag == False):
-            self.s1.close()
+    def enable(self, idx, instance):
+        acid = traf.id[idx]
+        
+        # Check if acid already has a open socket
+        try:
+            self.sockets[acid]
+            return False, 'Airmap stream socket already open for this aircraft'
+        except:
+            self.sockets[acid] = Airmap_stream_socket(acid, instance)
+            return True, 'Airmap stream socket opened for aircraft'
+  
+    def disable(self, idx):
+        acid = traf.id[idx]
+
+        try:
+            self.sockets[acid].close()
+            del self.sockets[acid]
+            return True, 'Airmap stream socket succesfully deleted'  
+        except:
+            return False, 'Airmap stream socket doesnt exist for this aircraft'
+    
+
+class Airmap_stream_socket(object):
+    def __init__(self, acid, instance):
+        self.socket = Socket(PUB)
+        self.gps_message = messages_pb2.GPSMessage()
+        self.acid = acid
+        self.instance = instance
+
+        # Bind socket
+        self.socket.bind(('ipc:///tmp/gps_position_' + str(instance)).encode('utf-8'))
+    
+    def update(self):
+        idx = traf.id2idx(self.acid)
+        self.gps_message.timestamp = int(time.time() * 1000.)
+        self.gps_message.lat = int(bs.traf.lat[idx] * 10.**7)
+        self.gps_message.lon = int(bs.traf.lon[idx] * 10. ** 7) 
+        self.gps_message.vn = int(bs.traf.gsnorth[idx] * 1000.)
+        self.gps_message.ve = int(bs.traf.gseast[idx] * 1000.)
+        self.gps_message.vd = int(bs.traf.vs[idx] * -1000.)
+        self.gps_message.alt_msl = int(bs.traf.alt[idx] * ft * 1000.) 
+        self.gps_message.alt_agl = int(bs.traf.alt[idx] * ft * 1000.) 
+        self.socket.send(self.gps_message.SerializeToString())
+
+    def close(self):
+        self.socket.close()
