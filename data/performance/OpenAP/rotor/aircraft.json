@@ -166,6 +166,23 @@
       "h_max": 2500,
       "d_range_max": 5      
    }
+  },
+   "RC_UAV": {
+    "name": "Rotorcraft UAV",
+    "n_engines": 4,
+    "engine_type": "TS",
+    "mtow": 0.734,
+    "oew": 0.494,
+    "mfc": 0,
+    "engines": [["Motor-E310-1", 0.0669], ["Motor-E310-2", 0.0669], ["Motor-E310-3", 0.0669], ["Motor-E310-4", 0.0669]],
+    "envelop": {
+      "v_min": -20,
+      "v_max": 20,
+      "vs_min": -3,
+      "vs_max": 5,
+      "h_max": 5000,
+      "d_range_max": 7      
+   }
   }
 }  
       
