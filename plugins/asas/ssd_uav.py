@@ -1,7 +1,7 @@
 ''' Conflict resolution based on the SSD algorithm. '''
 from bluesky.traffic.asas import ConflictResolution
 from bluesky.tools import geo
-from bluesky.tools.aero import nm
+from bluesky.tools.aero import nm, kts
 import numpy as np
 # Try to import pyclipper
 try:
@@ -368,11 +368,11 @@ class SSDUAV(ConflictResolution):
                 # Store result in conf
                 conf.asase[i] = x1[0]
                 conf.asasn[i] = y1[0]
-        # Those that are not in conflict will be assigned zeros
-        # Or those that have no solutions (full ARV)    
-        else:
-            conf.asase[i] = 0.
-            conf.asasn[i] = 0.
+            # Those that are not in conflict will be assigned zeros
+            # Or those that have no solutions (full ARV)    
+            else:
+                conf.asase[i] = 0.
+                conf.asasn[i] = 0.
             
     def area(self, vset):
         """ This function calculates the area of the set of FRV or ARV """
