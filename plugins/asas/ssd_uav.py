@@ -185,7 +185,7 @@ class SSDUAV(ConflictResolution):
                 # and the SSD cannot be constructed
                 if vmin == vmax == 0:
                     continue
-                
+                vmin = max(vmin, 0.001)
                 # Map them into the format pyclipper wants. Outercircle CCW, innercircle CW
                 circle_tup = (tuple(map(tuple, np.flipud(xyc * vmax))), tuple(map(tuple, xyc * vmin)))
                 circle_lst = [list(map(list, np.flipud(xyc * vmax))), list(map(list, xyc * vmin))]
