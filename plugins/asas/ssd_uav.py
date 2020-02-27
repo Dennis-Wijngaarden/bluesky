@@ -185,10 +185,15 @@ class SSDUAV(ConflictResolution):
                 # and the SSD cannot be constructed
                 if vmin == vmax == 0:
                     continue
-                vmin = max(vmin, 0.001)
-                # Map them into the format pyclipper wants. Outercircle CCW, innercircle CW
-                circle_tup = (tuple(map(tuple, np.flipud(xyc * vmax))), tuple(map(tuple, xyc * vmin)))
-                circle_lst = [list(map(list, np.flipud(xyc * vmax))), list(map(list, xyc * vmin))]
+                if (priocode == 'RS3'):
+                    v_selected = np.sqrt(gsnorth[i]**2 + gseast[i]**2)
+                    circle_tup = (tuple(map(tuple, np.flipud(xyc * (v_selected + 0.001)))), tuple(map(tuple, xyc * (v_selected - 0.001))))
+                    circle_lst = [list(map(list, np.flipud(xyc * (v_selected + 0.001)))), list(map(list, xyc * (v_selected - 0.001)))]
+                else:
+                    vmin = max(vmin, 0.001)
+                    # Map them into the format pyclipper wants. Outercircle CCW, innercircle CW
+                    circle_tup = (tuple(map(tuple, np.flipud(xyc * vmax))), tuple(map(tuple, xyc * vmin)))
+                    circle_lst = [list(map(list, np.flipud(xyc * vmax))), list(map(list, xyc * vmin))]
                 
                 # Relevant x1,y1,x2,y2 (x0 and y0 are zero in relative velocity space)
                 x1 = (sinqdr + cosqdrtanalpha) * 2. * vmax
