@@ -2,9 +2,10 @@
 from bluesky import traf
 from bluesky import settings
 from bluesky.tools import geo
-from bluesky.tools.aero import nm, kts
+from bluesky.tools.aero import nm
 import numpy as np
 import matplotlib
+matplotlib.use("Qt5agg")
 from matplotlib import pyplot as plt
 # Try to import pyclipper
 try:
