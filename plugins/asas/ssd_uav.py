@@ -278,6 +278,10 @@ class SSDUAV(ConflictResolution):
                             VO = pyclipper.scale_to_clipper(tuple(map(tuple, xy_los)))
                         # Add scaled VO to clipper
                         pc.AddPath(VO, pyclipper.PT_CLIP, True)
+                        
+                        if priocode == "RS2":
+                            if pyclipper.PointInPolygon(pyclipper.scale_to_clipper((apeast[i], apnorth[i])), VO):
+                                conf.ap_free[i] = False
                     
                      # Execute clipper command
                     FRV = pyclipper.scale_from_clipper(
@@ -333,8 +337,13 @@ class SSDUAV(ConflictResolution):
         # It's just linalg, however credits to: http://stackoverflow.com/a/1501725
         # Variables
         ARV = conf.ARV_calc
-        gsnorth = ownship.gsnorth
-        gseast = ownship.gseast
+        # Select AP-setting as reference point for closest to target rulesets
+        if self.priocode == "RS2":
+            gsnorth = np.cos(ownship.ap.trk / 180 * np.pi) * ownship.ap.tas
+            gseast = np.sin(ownship.ap.trk / 180 * np.pi) * ownship.ap.tas
+        else:
+            gsnorth = ownship.gsnorth
+            gseast = ownship.gseast
         ntraf = ownship.ntraf
         
         # Loop through SSDs of all aircraft
