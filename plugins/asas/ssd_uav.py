@@ -249,7 +249,20 @@ class SSDUAV(ConflictResolution):
                     # Make a clipper object
                     pc = pyclipper.Pyclipper()
                     # Add circles (ring-shape) to clipper as subject
-                    pc.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
+                    if priocode == "RS4":
+                        hdg_sel = hdg[i] * np.pi / 180
+                        xyp = np.array([[np.sin(hdg_sel - 0.0087), np.cos(hdg_sel - 0.0087)],
+                                        [0, 0],
+                                        [np.sin(hdg_sel + 0.0087), np.cos(hdg_sel + 0.0087)]],
+                                       dtype=np.float64)
+                        part = pyclipper.scale_to_clipper(tuple(map(tuple, 2.1 * vmax * xyp)))
+                        pc2 = pyclipper.Pyclipper()
+                        pc2.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
+                        pc2.AddPath(part, pyclipper.PT_CLIP, True)
+                        vel_cone_scaled = pc2.Execute(pyclipper.CT_INTERSECTION, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO)
+                        pc.AddPaths(vel_cone_scaled, pyclipper.PT_SUBJECT, True)
+                    else:
+                        pc.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
                     
                     
                     # Add each other other aircraft to clipper as clip
@@ -282,6 +295,14 @@ class SSDUAV(ConflictResolution):
                         if priocode == "RS2":
                             if pyclipper.PointInPolygon(pyclipper.scale_to_clipper((apeast[i], apnorth[i])), VO):
                                 conf.ap_free[i] = False
+                        elif priocode == "RS4":
+                            hdg_sel = hdg[i] * np.pi / 180
+                            xyp = np.array([[np.sin(hdg_sel + 0.0087), np.cos(hdg_sel + 0.0087)],
+                                            [0, 0],
+                                            [np.sin(hdg_sel - 0.0087), np.cos(hdg_sel - 0.0087)]],
+                                           dtype=np.float64)
+                            part = pyclipper.scale_to_clipper(tuple(map(tuple, 2.1 * vmax * xyp)))
+                            pc.AddPath(part, pyclipper.PT_SUBJECT, True)
                     
                      # Execute clipper command
                     FRV = pyclipper.scale_from_clipper(

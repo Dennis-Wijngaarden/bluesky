@@ -22,7 +22,7 @@ class Conflict(object):
 # Define derived class from SSDUAV
 class SSDUAVPlotter(object):
     def __init__(self):
-        self.priocode = 'RS1'
+        self.priocode = 'RS4'
         self.resofach = settings.asas_mar
         self.resofacv = settings.asas_mar
         self.flight_ids = []
@@ -132,7 +132,7 @@ class SSDUAVPlotter(object):
         # Consider every aircraft
         for i in range(ntraf):
             # Calculate SSD only for aircraft in conflict (See formulas appendix)
-            if conf.inconf[i]:
+            if True:
                 
                 vmin = ownship.perf.vmin[i]
                 vmax = ownship.perf.vmax[i]
@@ -141,11 +141,15 @@ class SSDUAVPlotter(object):
                 # and the SSD cannot be constructed
                 if vmin == vmax == 0:
                     continue
-                
-                # Map them into the format pyclipper wants. Outercircle CCW, innercircle CW
-                vmin = max(0, 0.001)
-                circle_tup = (tuple(map(tuple, np.flipud(xyc * vmax))), tuple(map(tuple, xyc * vmin)))
-                circle_lst = [list(map(list, np.flipud(xyc * vmax))), list(map(list, xyc * vmin))]
+                if (priocode == 'RS3'):
+                    v_selected = np.sqrt(gsnorth[i]**2 + gseast[i]**2)
+                    circle_tup = (tuple(map(tuple, np.flipud(xyc * (v_selected + 0.001)))), tuple(map(tuple, xyc * (v_selected - 0.001))))
+                    circle_lst = [list(map(list, np.flipud(xyc * (v_selected + 0.001)))), list(map(list, xyc * (v_selected - 0.001)))]
+                else:
+                    vmin = max(vmin, 0.001)
+                    # Map them into the format pyclipper wants. Outercircle CCW, innercircle CW
+                    circle_tup = (tuple(map(tuple, np.flipud(xyc * vmax))), tuple(map(tuple, xyc * vmin)))
+                    circle_lst = [list(map(list, np.flipud(xyc * vmax))), list(map(list, xyc * vmin))]
                 
                 # Relevant x1,y1,x2,y2 (x0 and y0 are zero in relative velocity space)
                 x1 = (sinqdr + cosqdrtanalpha) * 2. * vmax
@@ -201,7 +205,20 @@ class SSDUAVPlotter(object):
                     # Make a clipper object
                     pc = pyclipper.Pyclipper()
                     # Add circles (ring-shape) to clipper as subject
-                    pc.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
+                    if priocode == "RS4":
+                        hdg_sel = hdg[i] * np.pi / 180
+                        xyp = np.array([[np.sin(hdg_sel - 0.0087), np.cos(hdg_sel - 0.0087)],
+                                        [0, 0],
+                                        [np.sin(hdg_sel + 0.0087), np.cos(hdg_sel + 0.0087)]],
+                                       dtype=np.float64)
+                        part = pyclipper.scale_to_clipper(tuple(map(tuple, 2.1 * vmax * xyp)))
+                        pc2 = pyclipper.Pyclipper()
+                        pc2.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
+                        pc2.AddPath(part, pyclipper.PT_CLIP, True)
+                        vel_cone_scaled = pc2.Execute(pyclipper.CT_INTERSECTION, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO)
+                        pc.AddPaths(vel_cone_scaled, pyclipper.PT_SUBJECT, True)
+                    else:
+                        pc.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
                     
                     
                     # Add each other other aircraft to clipper as clip
@@ -230,11 +247,17 @@ class SSDUAVPlotter(object):
                             VO = pyclipper.scale_to_clipper(tuple(map(tuple, xy_los)))
                         # Add scaled VO to clipper
                         pc.AddPath(VO, pyclipper.PT_CLIP, True)
+                        
+                        if priocode == "RS2":
+                            if pyclipper.PointInPolygon(pyclipper.scale_to_clipper((apeast[i], apnorth[i])), VO):
+                                conf.ap_free[i] = False
                     
                      # Execute clipper command
-                    FRV = pyclipper.scale_from_clipper(pc.Execute(pyclipper.CT_INTERSECTION, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO))
-
-                    ARV = pyclipper.scale_from_clipper(pc.Execute(pyclipper.CT_DIFFERENCE, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO))
+                    FRV = pyclipper.scale_from_clipper(
+                        pc.Execute(pyclipper.CT_INTERSECTION, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO))
+    
+                    ARV = pyclipper.scale_from_clipper(
+                        pc.Execute(pyclipper.CT_DIFFERENCE, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO))
                     
                     # Check if ARV or FRV is empty
                     if len(ARV) == 0:
@@ -283,8 +306,13 @@ class SSDUAVPlotter(object):
         # It's just linalg, however credits to: http://stackoverflow.com/a/1501725
         # Variables
         ARV = conf.ARV_calc
-        gsnorth = ownship.gsnorth
-        gseast = ownship.gseast
+        # Select AP-setting as reference point for closest to target rulesets
+        if self.priocode == "RS2":
+            gsnorth = np.cos(ownship.ap.trk / 180 * np.pi) * ownship.ap.tas
+            gseast = np.sin(ownship.ap.trk / 180 * np.pi) * ownship.ap.tas
+        else:
+            gsnorth = ownship.gsnorth
+            gseast = ownship.gseast
         ntraf = ownship.ntraf
         
         # Loop through SSDs of all aircraft
