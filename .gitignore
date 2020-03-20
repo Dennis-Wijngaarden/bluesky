@@ -91,3 +91,8 @@ ssd.obj
 *-checkpoint.py
 *-checkpoint.ipynb
 .ropeproject/config.py
+
+# Generated scenarios
+scenario/Thesis/*
+# Generayed traffic
+data/performance/OpenAP/rotor/aircraft_experiment.json
