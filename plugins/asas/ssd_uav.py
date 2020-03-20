@@ -96,6 +96,8 @@ class SSDUAV(ConflictResolution):
         conf.FRV_area = np.zeros(ntraf, dtype=np.float32)
         conf.ARV_area = np.zeros(ntraf, dtype=np.float32)
         
+        conf.ap_free = np.ones(ntraf, dtype=bool)
+        
     def constructSSD(self, conf, ownship, priocode="RS1"):
         """ Calculates the FRV and ARV of the SSD """
         # Parameters
