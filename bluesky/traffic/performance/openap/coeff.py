@@ -21,7 +21,7 @@ fixwing_engine_db = settings.perf_path_openap + "/fixwing/engines.csv"
 fixwing_envelops_dir = settings.perf_path_openap + "/fixwing/wrap/"
 fixwing_dragpolar_db = settings.perf_path_openap + "/fixwing/dragpolar.csv"
 
-rotor_aircraft_db = settings.perf_path_openap + "/rotor/aircraft.json"
+rotor_aircraft_db = settings.perf_path_openap + "/rotor/aircraft_experiment.json"
 
 
 class Coefficient:
