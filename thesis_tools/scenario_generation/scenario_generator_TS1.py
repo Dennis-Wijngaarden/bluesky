@@ -7,6 +7,8 @@ random.seed()
 
 # Scenario folder
 location = "scenario/Thesis/TS1"
+if not os.path.exists(location):
+    os.makedirs(location)
 
 # First empty folder with scenarios
 filelist = [ f for f in os.listdir(location) if f.endswith(".scn") ]
