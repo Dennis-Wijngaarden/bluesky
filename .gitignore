@@ -96,3 +96,4 @@ ssd.obj
 scenario/Thesis/*
 # Generayed traffic
 data/performance/OpenAP/rotor/aircraft_experiment.json
+thesis_tools/data/*
