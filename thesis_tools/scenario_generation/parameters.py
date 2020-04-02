@@ -11,3 +11,4 @@ ref_position = "EHVB"   # Reference position
 ref_alt = 1000.         # Reference altitude [ft]
 min_vel_RC = 5.         # minimum initial speed for Rotorcraft
 R_PZ = 50.              # Radius od protected zone [m]
+max_gf_dist = 100.      # Margin with respect to geofence for geofence generation [m]
