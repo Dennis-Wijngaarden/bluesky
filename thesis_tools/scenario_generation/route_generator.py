@@ -90,7 +90,7 @@ for i in range(parameters.N_missions):
 
             # Check if accumulated time bigger than mission time
             accumulted_leg_time += leg_time
-            if (accumulted_leg_time >= parameters.t_mission):
+            if (accumulted_leg_time > parameters.t_mission):
                 route_done = True
             k += 1
 
