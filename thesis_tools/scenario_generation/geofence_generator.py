@@ -1,7 +1,7 @@
 import numpy as np
 import parameters
 import json
-import scipy as sp 
+from scipy.spatial import ConvexHull
 import random
 import os
 
@@ -49,7 +49,7 @@ class RouteSegment():
         self.u = np.array([dx, dy]) / self.abs # unit vector of segment
         self.n_right = np.array([self.u[1], -self.u[0]]) # normal vector pointing to the right 
         self.n_left = np.array([self.u[1], self.u[0]]) # Normal vector pointing to the left
-        self.trk = np.arctan2(dx, dy) # radians [-pi, pi]
+        self.trk = np.arctan2(dy, dx) # radians [-pi, pi]
 
 def intersect_angle_ranges(angles1, angles2):
     # Check if angles 2 range must be adjusted by 2pi
@@ -69,8 +69,10 @@ for i in range(parameters.N_missions):
     for j in range(parameters.N_vehicles):
         # Create for every vehicle a dictionary to store data
         data_entry = {}
-        # add geofence points to data_entry
+        # add geofence points, qdr and dist to data_entry
         data_entry['points'] = []
+        data_entry['qdr'] = []
+        data_entry['dist'] = []
 
         # Read route points
         points = route_data[i][j]['points']
@@ -195,7 +197,11 @@ for i in range(parameters.N_missions):
             dy = radius * np.cos(angle) # dy from points[k]
             point = [points[k][0] + dx, points[k][1] + dy]
             data_entry['points'].append(point)
-            geofence_data[i].append(data_entry)
+            data_entry['qdr'].append(np.rad2deg(np.arctan2(point[1], point[0])))
+            data_entry['dist'].append(np.sqrt(point[0]**2 + point[1]**2))
+        hull = ConvexHull(points = np.array(data_entry['points']))
+        data_entry['points'] = np.array(data_entry['points'])[hull.vertices].tolist()
+        geofence_data[i].append(data_entry)
 
 # Write data to json file
 location = "thesis_tools/data"
