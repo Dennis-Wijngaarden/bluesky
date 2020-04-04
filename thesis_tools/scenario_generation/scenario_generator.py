@@ -30,6 +30,9 @@ for i in range(parameters.N_missions):
         spd0 = random.uniform(aircraft_data[i][0]['v_min'], aircraft_data[i][0]['v_max'])
     data_entry['spd0'] = spd0
 
+    hdg0 = random.uniform(0., 360.)
+    data_entry['hdg0'] = hdg0
+
     spd1 = None
     if (aircraft_data[i][1]['type'] == 'RC'):
         spd1 = random.uniform(parameters.min_vel_RC, aircraft_data[i][1]['v_max'])
