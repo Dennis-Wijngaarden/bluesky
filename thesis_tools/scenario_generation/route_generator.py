@@ -69,6 +69,8 @@ for i in range(parameters.N_missions):
             data_entry['hdg'].append(np.deg2rad(scenario_data[i]['hdg0'] + scenario_data[i]['d_psi']))
         data_entry['points'] = []
         data_entry['gs'] = []
+        data_entry['qdr'] = [] # deg
+        data_entry['dist'] = []
 
         route_done = False
         accumulted_leg_time = 0.
@@ -83,10 +85,16 @@ for i in range(parameters.N_missions):
             # Create waypoint
             data_entry['gs'].append(airspeed_to_groundspeed(airspeed[j], data_entry['hdg'][-1], windspeed, wind_dir))
             leg_time = random.uniform(parameters.t_leg_min, parameters.t_leg_max)
-            leg_distance = leg_time * data_entry['gs'][-1]
+            if (j == 0):
+                leg_distance = leg_time * max(data_entry['gs'][-1], scenario_data[i]['spd0'])
+            else:
+                leg_distance = leg_time * max(data_entry['gs'][-1], scenario_data[i]['spd1'])
             relative_coordinate = (leg_distance * np.cos(data_entry['hdg'][-1]), leg_distance * np.sin(data_entry['hdg'][-1])) # (north, east)
             absolute_coordinate = (previous_coordinate[0] + relative_coordinate[0], previous_coordinate[1] + relative_coordinate[1])
             data_entry['points'].append(absolute_coordinate)
+            data_entry['qdr'].append(np.rad2deg(np.arctan2(absolute_coordinate[1], absolute_coordinate[0])))
+            data_entry['dist'].append(np.sqrt(absolute_coordinate[0]**2 + absolute_coordinate[1]**2))
+
 
             # Check if accumulated time bigger than mission time
             accumulted_leg_time += leg_time
