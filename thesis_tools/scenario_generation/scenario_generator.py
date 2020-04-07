@@ -32,8 +32,8 @@ def generate_scenario():
             spd0 = random.uniform(aircraft_data[i][0]['v_min'], aircraft_data[i][0]['v_max'])
         data_entry['spd0'] = spd0
 
-        hdg0 = random.uniform(0., 360.)
-        data_entry['hdg0'] = hdg0
+        trk0 = random.uniform(0., 360.)
+        data_entry['trk0'] = trk0
 
         spd1 = None
         if (aircraft_data[i][1]['type'] == 'RC'):
