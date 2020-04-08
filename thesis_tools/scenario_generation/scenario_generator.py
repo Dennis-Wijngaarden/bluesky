@@ -11,6 +11,11 @@ def generate_scenario():
         print("first generate traffic using traffic_generator.py")
         exit()
 
+    # Check if there is a wind.json, otherwise stop
+    if (not os.path.isfile("thesis_tools/data/wind.json")):
+        print("first generate wind using wind_generator.py")
+        exit()
+
     # Initialize randomizer
     random.seed()
 
@@ -22,14 +27,19 @@ def generate_scenario():
     aircraft_data = json.load(aircraft_json)
     aircraft_json.close()
 
+    # Load wind data from wind.json
+    wind_json = open("thesis_tools/data/wind.json", "r")
+    wind_data = json.load(wind_json)
+    wind_json.close()
+
     for i in range(parameters.N_missions):
         data_entry = {}
         # It is assumed that 2 aircraft are involved in a mission
         spd0 = None
         if (aircraft_data[i][0]['type'] == 'RC'):
-            spd0 = random.uniform(parameters.min_vel_RC, aircraft_data[i][0]['v_max'])
+            spd0 = random.uniform(max(parameters.min_vel_RC, wind_data[i]['speed']), aircraft_data[i][0]['v_max'])
         else:
-            spd0 = random.uniform(aircraft_data[i][0]['v_min'], aircraft_data[i][0]['v_max'])
+            spd0 = random.uniform(max(aircraft_data[i][0]['v_min'], wind_data[i]['speed']), aircraft_data[i][0]['v_max'])
         data_entry['spd0'] = spd0
 
         trk0 = random.uniform(0., 360.)

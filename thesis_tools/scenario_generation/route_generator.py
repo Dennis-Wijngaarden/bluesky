@@ -42,11 +42,6 @@ def generate_route():
     route_data_wind_calm = []
     route_data_wind = []
 
-    # Load aircraft data from aircraft.json
-    aircraft_json = open("thesis_tools/data/aircraft.json", "r")
-    aircraft_data = json.load(aircraft_json)
-    aircraft_json.close()
-
     # Load wind data from wind.json
     wind_json = open("thesis_tools/data/wind.json", "r")
     wind_data = json.load(wind_json)
