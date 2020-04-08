@@ -132,9 +132,9 @@ def generate_route():
                     leg_distance = leg_time * max(gs_wind, scenario_data[i]['spd0'])
                 else:
                     leg_distance = leg_time * max(gs_wind, scenario_data[i]['spd1'])
-                relative_coordinate = [leg_distance * np.cos(data_entry['trk'][-1]), leg_distance * np.sin(data_entry['trk'][-1])] # [north, east]
-                absolute_coordinate_wind_calm = (previous_coordinate_wind_calm[0] + relative_coordinate[0], previous_coordinate_wind_calm[1] + relative_coordinate[1])
-                absolute_coordinate_wind = (previous_coordinate_wind[0] + relative_coordinate[0], previous_coordinate_wind[1] + relative_coordinate[1])
+                relative_coordinate = [leg_distance * np.sin(data_entry['trk'][-1]), leg_distance * np.cos(data_entry['trk'][-1])] # [east, north]
+                absolute_coordinate_wind_calm = [previous_coordinate_wind_calm[0] + relative_coordinate[0], previous_coordinate_wind_calm[1] + relative_coordinate[1]]
+                absolute_coordinate_wind = [previous_coordinate_wind[0] + relative_coordinate[0], previous_coordinate_wind[1] + relative_coordinate[1]]
                 data_entry_wind_calm['points'].append(absolute_coordinate_wind_calm)
                 data_entry_wind['points'].append(absolute_coordinate_wind)
 
@@ -146,8 +146,8 @@ def generate_route():
 
             # Add qdr and dist by looping through points
             for k in range(len(data_entry_wind['points'])):
-                data_entry_wind_calm['qdr'].append(np.rad2deg(np.arctan2(-data_entry_wind_calm['points'][k][0], data_entry_wind_calm['points'][k][1])))
-                data_entry_wind['qdr'].append(np.rad2deg(np.arctan2(-data_entry_wind['points'][k][0], data_entry_wind['points'][k][1])))
+                data_entry_wind_calm['qdr'].append(np.rad2deg(np.arctan2(data_entry_wind_calm['points'][k][0], data_entry_wind_calm['points'][k][1])))
+                data_entry_wind['qdr'].append(np.rad2deg(np.arctan2(data_entry_wind['points'][k][0], data_entry_wind['points'][k][1])))
                 data_entry_wind_calm['dist'].append(np.sqrt(data_entry_wind_calm['points'][k][0]**2 + data_entry_wind_calm['points'][k][1]**2))
                 data_entry_wind['dist'].append(np.sqrt(data_entry_wind['points'][k][0]**2 + data_entry_wind['points'][k][1]**2))
             data_entry_wind_calm.update(data_entry)
