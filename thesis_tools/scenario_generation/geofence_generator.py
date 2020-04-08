@@ -182,6 +182,8 @@ def generate_geofence(loc_route, loc_output):
                 data_entry['dist'].append(np.sqrt(point[0]**2 + point[1]**2))
             hull = ConvexHull(points = np.array(data_entry['points']))
             data_entry['points'] = np.array(data_entry['points'])[hull.vertices].tolist()
+            data_entry['qdr'] = np.array(data_entry['qdr'])[hull.vertices].tolist()
+            data_entry['dist'] = np.array(data_entry['dist'])[hull.vertices].tolist()
             geofence_data[i].append(data_entry)
 
     # Write data to json file
