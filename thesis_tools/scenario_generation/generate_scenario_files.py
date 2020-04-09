@@ -216,17 +216,40 @@ for i in range(parameters.N_missions):
         batch_TS3.write(common_lines)
         batch_TS4.write(common_lines)
 
+        batch_TS1.write("00:00:00.00>CRELOG CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
+        batch_TS2.write("00:00:00.00>CRELOG CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
+        batch_TS3.write("00:00:00.00>CRELOG CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
+        batch_TS4.write("00:00:00.00>CRELOG CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
+
+        batch_TS1.write("00:00:00.00>CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
+        batch_TS2.write("00:00:00.00>CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
+        batch_TS3.write("00:00:00.00>CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
+        batch_TS4.write("00:00:00.00>CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
+
         batch_TS1.write("00:00:00.00>PCALL Thesis/TS1/test" + str(i) + ".scn\n")
         batch_TS2.write("00:00:00.00>PCALL Thesis/TS2/test" + str(i) + ".scn\n")
         batch_TS3.write("00:00:00.00>PCALL Thesis/TS3/test" + str(i) + ".scn\n")
         batch_TS4.write("00:00:00.00>PCALL Thesis/TS4/test" + str(i) + ".scn\n")
 
-        common_lines = "00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n"
+        batch_TS1.write("00:00:00.00>CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
+        batch_TS2.write("00:00:00.00>CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
+        batch_TS3.write("00:00:00.00>CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
+        batch_TS4.write("00:00:00.00>CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
 
-        batch_TS1.write(common_lines)
-        batch_TS2.write(common_lines)
-        batch_TS3.write(common_lines)
-        batch_TS4.write(common_lines)
+        batch_TS1.write("00:00:00.00>FF\n")
+        batch_TS2.write("00:00:00.00>FF\n")
+        batch_TS3.write("00:00:00.00>FF\n")
+        batch_TS4.write("00:00:00.00>FF\n")
+
+        batch_TS1.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
+        batch_TS2.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
+        batch_TS3.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
+        batch_TS4.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
+
+        batch_TS1.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
+        batch_TS2.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
+        batch_TS3.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
+        batch_TS4.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
 
     # Close scenario files
     scn_TS1.close()
