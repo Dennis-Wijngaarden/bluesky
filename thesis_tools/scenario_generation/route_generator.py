@@ -12,7 +12,7 @@ def airspeed_to_groundspeed(airspeed, trk, windspeed, wind_dir):
     u_trk = np.array([np.cos(trk), np.sin(trk)]) # (north, east) Unit vector of track
     u_right = np.array([np.cos(trk + 0.5 * np.pi), np.sin(trk + 0.5 * np.pi)]) # (north, east) Unit vector right perpenidcular to track
     wind_right = np.dot(wind_ne, u_right) # Wind component along u_right
-    decrab_angle = - np.sin(wind_right / airspeed)# to right positive
+    decrab_angle = np.arcsin(-wind_right / airspeed)# to right positive
     wind_trk = np.dot(u_trk, wind_ne) # Wind along track axis (u_trk)
     groundspeed = airspeed * np.cos(decrab_angle) + wind_trk # Speed of vehicle along track
     

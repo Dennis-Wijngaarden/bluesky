@@ -133,8 +133,12 @@ for i in range(parameters.N_missions):
     scn_TS4 = open(loc_TS4 + "/test" + str(i) + ".scn", "w")
 
     # Write scenario files
-    # Create first UAV in scenario for all test series
-    cre_line = "00:00:00.00>CRE UAV0 UAV_" + str(i) + "_0 " + parameters.ref_position + " " + str(scenario_data[i]['trk0']) + " " +\
+    # Create first UAV in scenario for wind calm test series
+    cre_line_wind_calm = "00:00:00.00>CRE UAV0 UAV_" + str(i) + "_0 " + parameters.ref_position + " " + str(scenario_data[i]['trk0']) + " " +\
+            str(parameters.ref_alt) + " " + str(scenario_data[i]['spd0'] / kts) + "\n"
+
+    # Create first UAV in scenario for windy test series
+    cre_line_wind = "00:00:00.00>CRE UAV0 UAV_" + str(i) + "_0 " + parameters.ref_position + " " + str(scenario_data[i]['hdg0_wind']) + " " +\
             str(parameters.ref_alt) + " " + str(scenario_data[i]['spd0'] / kts) + "\n"
     
     # Create conflicitng UAV in scenario for wind calm scenarios
@@ -185,10 +189,10 @@ for i in range(parameters.N_missions):
     wind_line = "00:00:00.00>WIND 0 0 1000 " + str(wind_data[i]['direction']) + " " + str(wind_data[i]['speed'] / kts) + "\n"
 
     # Write scenario files
-    scn_TS1.write(cre_line + conf_line_wind_calm + wpt_lines_wind_calm)
-    scn_TS2.write(cre_line + conf_line_wind_calm + wpt_lines_wind_calm + gf_lines_wind_calm)
-    scn_TS3.write(wind_line + cre_line + conf_line_wind + wpt_lines_wind)
-    scn_TS4.write(wind_line + cre_line + conf_line_wind + wpt_lines_wind + gf_lines_wind)
+    scn_TS1.write(cre_line_wind_calm + conf_line_wind_calm + wpt_lines_wind_calm)
+    scn_TS2.write(cre_line_wind_calm + conf_line_wind_calm + wpt_lines_wind_calm + gf_lines_wind_calm)
+    scn_TS3.write(wind_line + cre_line_wind + conf_line_wind + wpt_lines_wind)
+    scn_TS4.write(wind_line + cre_line_wind + conf_line_wind + wpt_lines_wind + gf_lines_wind)
 
     for j in range(parameters.N_RS):
         batch_TS1.write("00:00:00.00>SCEN test_" + str(i) + "_TS1_RS" + str(j + 1) + "\n")

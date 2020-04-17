@@ -4,6 +4,19 @@ import random
 import json
 import os
 
+def trk_to_hdg(trk, airspeed, windspeed, wind_dir):
+    wind_ne = np.array([-windspeed * np.cos(wind_dir), -windspeed * np.sin(wind_dir)])
+
+    # Calculate decrab angle (right positivive)
+    u_right = np.array([np.cos(trk + 0.5 * np.pi), np.sin(trk + 0.5 * np.pi)]) # (north, east) Unit vector right perpenidcular to track
+    wind_right = np.dot(wind_ne, u_right) # Wind component along u_right
+    decrab_angle = np.arcsin(-wind_right / airspeed)# to right positive
+
+    # so the hdg is the trk + decrab_angle
+    hdg = (trk + decrab_angle) % (2. * np.pi)
+
+    return hdg
+
 def generate_scenario():
 
     # Check if there is a aircraft.json, otherwise stop
@@ -45,11 +58,14 @@ def generate_scenario():
         trk0 = random.uniform(0., 360.)
         data_entry['trk0'] = trk0
 
+        hdg0_wind = np.rad2deg(trk_to_hdg(np.deg2rad(trk0), spd0, wind_data[i]['speed'], np.deg2rad(wind_data[i]['direction'])))
+        data_entry['hdg0_wind'] = hdg0_wind
+
         spd1 = None
         if (aircraft_data[i][1]['type'] == 'RC'):
-            spd1 = random.uniform(parameters.min_vel_RC, aircraft_data[i][1]['v_max'])
+            spd1 = random.uniform(max(parameters.min_vel_RC, wind_data[i]['speed']), aircraft_data[i][1]['v_max'])
         else:
-            spd1 = random.uniform(aircraft_data[i][1]['v_min'], aircraft_data[i][1]['v_max'])
+            spd1 = random.uniform(max(aircraft_data[i][1]['v_min'], wind_data[i]['speed']), aircraft_data[i][1]['v_max'])
         data_entry['spd1'] = spd1
 
         d_psi = random.uniform(0., 360.)
