@@ -166,27 +166,17 @@ for i in range(parameters.N_missions):
         wpt_lines_wind += "00:00:00.00>ADDWPT UAV1 " + str(wp_lat) + "," + str(wp_lon) + "\n"
 
     # Create geofences for wind calm scenarios
-    gf_lines_wind_calm = "00:00:00.00>POLY GF0 "
-    for j in range(len(geofence_data[i][0]['points'])):
-        gf_lat, gf_lon = geo.qdrpos(lat_ref, lon_ref, geofence_data[i][0]['qdr'][j], geofence_data[i][0]['dist'][j] / nm)
-        gf_lines_wind_calm += str(gf_lat) + " " + str(gf_lon) + " "
-
-    gf_lines_wind_calm += "\n00:00:00.00>POLY GF1 "
-    for j in range(len(geofence_data[i][1]['points'])):
-        gf_lat, gf_lon = geo.qdrpos(lat_ref, lon_ref, geofence_data[i][1]['qdr'][j], geofence_data[i][1]['dist'][j] / nm)
+    gf_lines_wind_calm = "00:00:00.00>POLY GF "
+    for j in range(len(geofence_data[i]['points'])):
+        gf_lat, gf_lon = geo.qdrpos(lat_ref, lon_ref, geofence_data[i]['qdr'][j], geofence_data[i]['dist'][j] / nm)
         gf_lines_wind_calm += str(gf_lat) + " " + str(gf_lon) + " "
     
     gf_lines_wind_calm += "\n"
 
     # Create geofences for windy scenarios
-    gf_lines_wind = "00:00:00.00>POLY GF0 "
-    for j in range(len(geofence_data[i][0]['points'])):
-        gf_lat, gf_lon = geo.qdrpos(lat_ref, lon_ref, geofence_wind_data[i][0]['qdr'][j], geofence_wind_data[i][0]['dist'][j] / nm)
-        gf_lines_wind += str(gf_lat) + " " + str(gf_lon) + " "
-
-    gf_lines_wind += "\n00:00:00.00>POLY GF1 "
-    for j in range(len(geofence_data[i][1]['points'])):
-        gf_lat, gf_lon = geo.qdrpos(lat_ref, lon_ref, geofence_wind_data[i][1]['qdr'][j], geofence_wind_data[i][1]['dist'][j] / nm)
+    gf_lines_wind = "00:00:00.00>POLY GF "
+    for j in range(len(geofence_wind_data[i]['points'])):
+        gf_lat, gf_lon = geo.qdrpos(lat_ref, lon_ref, geofence_wind_data[i]['qdr'][j], geofence_wind_data[i]['dist'][j] / nm)
         gf_lines_wind += str(gf_lat) + " " + str(gf_lon) + " "
     
     gf_lines_wind += "\n"
@@ -216,35 +206,55 @@ for i in range(parameters.N_missions):
         batch_TS3.write(common_lines)
         batch_TS4.write(common_lines)
 
+        # Create conflog
         batch_TS1.write("00:00:00.00>CRELOG CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
         batch_TS2.write("00:00:00.00>CRELOG CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
         batch_TS3.write("00:00:00.00>CRELOG CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
         batch_TS4.write("00:00:00.00>CRELOG CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
 
+        # Create arealog
+        batch_TS2.write("00:00:00.00>CRELOG AREALOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
+        batch_TS4.write("00:00:00.00>CRELOG AREALOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
+
+        # Add variables to conflog
         batch_TS1.write("00:00:00.00>CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
         batch_TS2.write("00:00:00.00>CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
         batch_TS3.write("00:00:00.00>CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
         batch_TS4.write("00:00:00.00>CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
+
+        # Add variables to arealog
+        batch_TS2.write("00:00:00.00>AREALOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " ADD tools.areafilter.areas\n")
+        batch_TS4.write("00:00:00.00>AREALOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " ADD tools.areafilter.areas\n")
 
         batch_TS1.write("00:00:00.00>PCALL Thesis/TS1/test" + str(i) + ".scn\n")
         batch_TS2.write("00:00:00.00>PCALL Thesis/TS2/test" + str(i) + ".scn\n")
         batch_TS3.write("00:00:00.00>PCALL Thesis/TS3/test" + str(i) + ".scn\n")
         batch_TS4.write("00:00:00.00>PCALL Thesis/TS4/test" + str(i) + ".scn\n")
 
+        # enable conflog
         batch_TS1.write("00:00:00.00>CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
         batch_TS2.write("00:00:00.00>CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
         batch_TS3.write("00:00:00.00>CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
         batch_TS4.write("00:00:00.00>CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
+
+        # enable arealog
+        batch_TS2.write("00:00:00.00>AREALOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
+        batch_TS4.write("00:00:00.00>AREALOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
 
         batch_TS1.write("00:00:00.00>FF\n")
         batch_TS2.write("00:00:00.00>FF\n")
         batch_TS3.write("00:00:00.00>FF\n")
         batch_TS4.write("00:00:00.00>FF\n")
 
+        # disable conflog
         batch_TS1.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
         batch_TS2.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
         batch_TS3.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
         batch_TS4.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
+
+        # disable arealog
+        batch_TS2.write("00:00:00.00>AREALOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
+        batch_TS4.write("00:00:00.00>AREALOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
 
         batch_TS1.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
         batch_TS2.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
