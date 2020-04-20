@@ -187,5 +187,5 @@ class Logger():
     def log_gf(self):
         for i in range(traf.ntraf):
             in_gf = areafilter.checkInside('GF', traf.lat[i], traf.lon[i], traf.alt[i])
-            self.gf_log.log(    trad.id[i],
+            self.gf_log.log(    traf.id[i],
                                 in_gf)
