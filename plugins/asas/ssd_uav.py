@@ -1,6 +1,6 @@
 ''' Conflict resolution based on the SSD algorithm. '''
 from bluesky.traffic.asas import ConflictResolution
-from bluesky.tools import geo
+from bluesky.tools import geo, areafilter
 from bluesky.tools.aero import nm, kts
 import numpy as np
 # Try to import pyclipper
@@ -266,7 +266,6 @@ class SSDUAV(ConflictResolution):
                     else:
                         pc.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
                     
-                    
                     # Add each other other aircraft to clipper as clip
                     for j in range(np.shape(i_other)[0]):
                         # Scale VO when not in LOS
@@ -297,16 +296,115 @@ class SSDUAV(ConflictResolution):
                         if priocode == "RS2":
                             if pyclipper.PointInPolygon(pyclipper.scale_to_clipper((apeast[i], apnorth[i])), VO):
                                 conf.ap_free[i] = False
-                        elif priocode == "RS4":
-                            hdg_sel = hdg[i] * np.pi / 180
-                            xyp = np.array([[np.sin(hdg_sel + 0.0087), np.cos(hdg_sel + 0.0087)],
-                                            [0, 0],
-                                            [np.sin(hdg_sel - 0.0087), np.cos(hdg_sel - 0.0087)]],
-                                           dtype=np.float64)
-                            part = pyclipper.scale_to_clipper(tuple(map(tuple, 2.1 * vmax * xyp)))
-                            pc.AddPath(part, pyclipper.PT_SUBJECT, True)
+                        #elif priocode == "RS4":
+                        #    hdg_sel = hdg[i] * np.pi / 180
+                        #    xyp = np.array([[np.sin(hdg_sel + 0.0087), np.cos(hdg_sel + 0.0087)],
+                        #                    [0, 0],
+                        #                    [np.sin(hdg_sel - 0.0087), np.cos(hdg_sel - 0.0087)]],
+                        #                   dtype=np.float64)
+                        #    part = pyclipper.scale_to_clipper(tuple(map(tuple, 2.1 * vmax * xyp)))
+                        #    pc.AddPath(part, pyclipper.PT_SUBJECT, True)
+
+                        # Add Geofence if available
+                        try:
+                            areafilter.areas['GF']
+                        except:
+                            pass
+                        else:
+                            # Load geofence shape
+                            geofence = areafilter.areas['GF']
+                            # Loop through geofence coordinates
+                            coordinates = np.reshape(geofence.coordinates, (int(len(geofence.coordinates) / 2), 2))
+                            qdrs_gf = np.array([]) # [deg] in hdg CW
+                            dists_gf = np.array([]) # [m]
+                            for k in range(len(coordinates)):
+                                # Calculate relative qdrs and distances of geofence points w.r.t. ownship
+                                qdr_gf, dist_gf = geo.qdrdist(ownship.lat[i], ownship.lon[i], coordinates[k][0], coordinates[k][1])
+                                qdrs_gf = np.append(qdrs_gf, qdr_gf)
+                                dists_gf = np.append(dists_gf, dist_gf * nm)
+
+                            qdrs_gf_rad = np.deg2rad(qdrs_gf)
+                            xs_gf = dists_gf * np.sin(qdrs_gf_rad) # [m] East
+                            ys_gf = dists_gf * np.cos(qdrs_gf_rad) # [m] North
+
+                            
+                            # Generate data for each geofence segment 0 to 1, 1 to 2, 2 to 3 ..... n to 0.
+                            dxs_gf = np.array([])
+                            dys_gf = np.array([])
+                            for k in range(len(coordinates)):
+                                x_from = xs_gf[k]
+                                y_from = ys_gf[k]
+                                # if last elament (needs to be connected to first element)
+                                if k == (len(coordinates) - 1):
+                                    x_to = xs_gf[0]
+                                    y_to = ys_gf[0]
+                                else:
+                                    x_to = xs_gf[k + 1]
+                                    y_to = ys_gf[k + 1]
+                                
+                                dxs_gf = np.append(dxs_gf, x_to - x_from)
+                                dys_gf = np.append(dys_gf, y_to - y_from)
+
+                            # calculate values (phis) of rotation of geofence segments
+                            phis_gf = np.arctan2(dys_gf, dxs_gf)
+                            x_hats_prime = np.transpose(np.array([np.cos(phis_gf), np.sin(phis_gf)]))
+                            y_hats_prime = np.transpose(np.array([-np.sin(phis_gf), np.cos(phis_gf)]))
+
+                            # Determine relative distance vector w.r.t. intruder
+                            qdr_int, dist_int = geo.qdrdist(ownship.lat[i], ownship.lon[i], ownship.lat[i_other[j]], ownship.lon[i_other[j]])
+                            qdr_int_rad = np.deg2rad(qdr_int)
+                            x_int = dist_int * np.sin(qdr_int_rad)
+                            y_int = dist_int * np.cos(qdr_int_rad)
+                            d_int = np.array([x_int, y_int])
+                            trk_int = np.deg2rad(ownship.trk[i_other[j]])
+                            gs_int = np.deg2rad(ownship.gs[i_other[j]])
+                            v_int = np.array([gs_int * np.sin(trk_int), gs_int * np.cos(trk_int)])
+
+                            d_int_dot_x_hats_prime = np.array([])
+                            d_int_dot_y_hats_prime = np.array([])
+
+                            ds_geo = np.array([]) # [m] Array of distanced w.r.t. geofence of wonship
+                            for k in range(len(x_hats_prime)):
+                                d_int_dot_x_hats_prime = np.append(d_int_dot_x_hats_prime, np.dot(d_int, x_hats_prime[k]))
+                                d_int_dot_y_hats_prime = np.append(d_int_dot_y_hats_prime, np.dot(d_int, y_hats_prime[k]))
+
+                                ds_geo = np.append(ds_geo, -np.dot(np.array([xs_gf[k], ys_gf[k]]), y_hats_prime[k]))
+                            
+                            phis_prime_gf = 0.5 * np.arctan2(-1. * d_int_dot_x_hats_prime, d_int_dot_y_hats_prime)
+
+                            # Total rotation angle
+                            phis_total_gf = phis_gf + phis_prime_gf
+
+                            x_hats_2prime = np.transpose(np.array([np.cos(phis_total_gf), np.sin(phis_total_gf)]))
+                            y_hats_2prime = np.transpose(np.array([-np.sin(phis_total_gf), np.cos(phis_total_gf)]))
+
+                            d_int_dot_x_hats_2prime = np.array([])
+                            d_int_dot_y_hats_2prime = np.array([])
+                            v_int_dot_x_hats_2prime = np.array([])
+                            v_int_dot_y_hats_2prime = np.array([])
+                            d_int_dot_v_int = np.array([])
+
+                            for k in range(len(x_hats_2prime)):
+                                d_int_dot_x_hats_2prime = np.append(d_int_dot_x_hats_2prime, np.dot(d_int, x_hats_2prime[k]))
+                                d_int_dot_y_hats_2prime = np.append(d_int_dot_y_hats_2prime, np.dot(d_int, y_hats_2prime[k]))
+
+                                v_int_dot_x_hats_2prime = np.append(v_int_dot_x_hats_2prime, np.dot(v_int, x_hats_2prime[k]))
+                                v_int_dot_y_hats_2prime = np.append(v_int_dot_y_hats_2prime, np.dot(v_int, y_hats_2prime[k]))
+
+                                d_int_dot_v_int = np.append(d_int_dot_v_int, np.dot(d_int, v_int))
+
+                            C1s = 1. + np.sin(phis_prime_gf) * d_int_dot_x_hats_2prime / ds_geo
+                            C2s = 1. + np.cos(phis_prime_gf) * d_int_dot_y_hats_2prime / ds_geo
+                            C3s = -2. * v_int_dot_x_hats_2prime - np.sin(phis_prime_gf) * d_int_dot_v_int / ds_geo
+                            C4s = -2. * v_int_dot_y_hats_2prime - np.cos(phis_prime_gf) * d_int_dot_v_int / ds_geo
+                            
+                            Cxs_2prime = - C3s / (2. * C1s)
+                            Cys_2prime = - C4s / (2. * C2s)
+
+                            a2s = (- gs_int**2 + C2s * Cys_2prime**2) / C1s + Cxs_2prime**2
+                            b2s = (- gs_int**2 + C1s * Cxs_2prime**2) / C2s + Cys_2prime**2
                     
-                     # Execute clipper command
+                    # Execute clipper command
                     FRV = pyclipper.scale_from_clipper(
                         pc.Execute(pyclipper.CT_INTERSECTION, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO))
 
