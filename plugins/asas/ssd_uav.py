@@ -182,6 +182,9 @@ class SSDUAV(ConflictResolution):
                 
                 vmin = ownship.perf.vmin[i]
                 vmax = ownship.perf.vmax[i]
+
+                # wind field around ownship
+                vn_wind, ve_wind = ownship.wind.getdata(ownship.lat[i], ownship.lon[i], ownship.alt[i])
                 
                 # in the first time step, ASAS runs before perf, which means that his value will be zero
                 # and the SSD cannot be constructed
@@ -189,13 +192,13 @@ class SSDUAV(ConflictResolution):
                     continue
                 if (priocode == 'RS3'):
                     v_selected = np.sqrt(gsnorth[i]**2 + gseast[i]**2)
-                    circle_tup = (tuple(map(tuple, np.flipud(xyc * (v_selected + 0.001)))), tuple(map(tuple, xyc * (v_selected - 0.001))))
-                    circle_lst = [list(map(list, np.flipud(xyc * (v_selected + 0.001)))), list(map(list, xyc * (v_selected - 0.001)))]
+                    circle_tup = (tuple(map(tuple, np.flipud((xyc * (v_selected + 0.001)) + np.array([vn_wind, ve_wind])))), tuple(map(tuple, (xyc * (v_selected - 0.001)) + np.array([vn_wind, ve_wind]))))
+                    circle_lst = [list(map(list, np.flipud((xyc * (v_selected + 0.001)) + np.array([vn_wind, ve_wind])))), list(map(list, (xyc * (v_selected - 0.001)) + np.array([vn_wind, ve_wind])))]
                 else:
                     vmin = max(vmin, 0.001)
                     # Map them into the format pyclipper wants. Outercircle CCW, innercircle CW
-                    circle_tup = (tuple(map(tuple, np.flipud(xyc * vmax))), tuple(map(tuple, xyc * vmin)))
-                    circle_lst = [list(map(list, np.flipud(xyc * vmax))), list(map(list, xyc * vmin))]
+                    circle_tup = (tuple(map(tuple, np.flipud((xyc * vmax) + np.array([vn_wind, ve_wind])))), tuple(map(tuple, (xyc * vmin) + np.array([vn_wind, ve_wind]))))
+                    circle_lst = [list(map(list, np.flipud((xyc * vmax) + np.array([vn_wind, ve_wind])))), list(map(list, (xyc * vmin) + np.array([vn_wind, ve_wind])))]
                 
                 # Relevant x1,y1,x2,y2 (x0 and y0 are zero in relative velocity space)
                 x1 = (sinqdr + cosqdrtanalpha) * 2. * vmax
