@@ -192,13 +192,13 @@ class SSDUAV(ConflictResolution):
                     continue
                 if (priocode == 'RS3'):
                     v_selected = np.sqrt(gsnorth[i]**2 + gseast[i]**2)
-                    circle_tup = (tuple(map(tuple, np.flipud((xyc * (v_selected + 0.001)) + np.array([vn_wind, ve_wind])))), tuple(map(tuple, (xyc * (v_selected - 0.001)) + np.array([vn_wind, ve_wind]))))
-                    circle_lst = [list(map(list, np.flipud((xyc * (v_selected + 0.001)) + np.array([vn_wind, ve_wind])))), list(map(list, (xyc * (v_selected - 0.001)) + np.array([vn_wind, ve_wind])))]
+                    circle_tup = (tuple(map(tuple, np.flipud((xyc * (v_selected + 0.001)) + np.array([ve_wind, vn_wind])))), tuple(map(tuple, (xyc * (v_selected - 0.001)) + np.array([ve_wind, vn_wind]))))
+                    circle_lst = [list(map(list, np.flipud((xyc * (v_selected + 0.001)) + np.array([ve_wind, vn_wind])))), list(map(list, (xyc * (v_selected - 0.001)) + np.array([ve_wind, vn_wind])))]
                 else:
                     vmin = max(vmin, 0.001)
                     # Map them into the format pyclipper wants. Outercircle CCW, innercircle CW
-                    circle_tup = (tuple(map(tuple, np.flipud((xyc * vmax) + np.array([vn_wind, ve_wind])))), tuple(map(tuple, (xyc * vmin) + np.array([vn_wind, ve_wind]))))
-                    circle_lst = [list(map(list, np.flipud((xyc * vmax) + np.array([vn_wind, ve_wind])))), list(map(list, (xyc * vmin) + np.array([vn_wind, ve_wind])))]
+                    circle_tup = (tuple(map(tuple, np.flipud((xyc * vmax) + np.array([ve_wind, vn_wind])))), tuple(map(tuple, (xyc * vmin) + np.array([ve_wind, vn_wind]))))
+                    circle_lst = [list(map(list, np.flipud((xyc * vmax) + np.array([ve_wind, vn_wind])))), list(map(list, (xyc * vmin) + np.array([ve_wind, vn_wind])))]
                 
                 # Relevant x1,y1,x2,y2 (x0 and y0 are zero in relative velocity space)
                 x1 = (sinqdr + cosqdrtanalpha) * 2. * vmax
