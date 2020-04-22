@@ -366,7 +366,7 @@ class SSDUAV(ConflictResolution):
                             y_int = dist_int * nm * np.cos(qdr_int_rad)
                             d_int = np.array([x_int, y_int])
                             trk_int = np.deg2rad(ownship.trk[i_other[j]])
-                            gs_int = np.deg2rad(ownship.gs[i_other[j]])
+                            gs_int = ownship.gs[i_other[j]]
                             v_int = np.array([gs_int * np.sin(trk_int), gs_int * np.cos(trk_int)])
 
                             v_int_dot_y_hats_prime = np.array([])
@@ -425,6 +425,9 @@ class SSDUAV(ConflictResolution):
 
                             # Loop trough a2s and b2s to construct VOs, categorize them 
                             for k in range(len(a2s)):
+                                # if ownship outside gf segment TODO: UPDATE FOR OUTSIDE the geofence cases!!!!!
+                                if (a2s[k] <= 0):
+                                    continue
                                 # If Ellipse
                                 if (b2s[k] > 0):
                                     ellipse_angles = np.linspace(0., 2. * np.pi, N_angle)
