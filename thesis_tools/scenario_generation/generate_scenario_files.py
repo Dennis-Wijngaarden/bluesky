@@ -149,6 +149,8 @@ for i in range(parameters.N_missions):
     conf_line_wind = "00:00:00.00>CRECONFS UAV1 UAV_" + str(i) + "_1 UAV0 " + str(scenario_data[i]['d_psi']) + " " + str(scenario_data[i]['dist_cpa'] / nm) + " " +\
             str(parameters.t_la + parameters.t_extra) + " 0 0 " + str(route_wind_data[i][1]['gs'][0] / kts) + "\n"
 
+    flyturn_line = "00:00:00.00>ADDWPT UAV0 FLYOVER\n"
+
     # Create routes for wind calm scenarios
     wpt_lines_wind_calm = ""
     for j in range(1, len(route_data[i][0]['points'])):
@@ -189,10 +191,10 @@ for i in range(parameters.N_missions):
     wind_line = "00:00:00.00>WIND 0 0 1000 " + str(wind_data[i]['direction']) + " " + str(wind_data[i]['speed'] / kts) + "\n"
 
     # Write scenario files
-    scn_TS1.write(cre_line_wind_calm + conf_line_wind_calm + wpt_lines_wind_calm)
-    scn_TS2.write(cre_line_wind_calm + conf_line_wind_calm + wpt_lines_wind_calm + gf_lines_wind_calm)
-    scn_TS3.write(wind_line + cre_line_wind + conf_line_wind + wpt_lines_wind)
-    scn_TS4.write(wind_line + cre_line_wind + conf_line_wind + wpt_lines_wind + gf_lines_wind)
+    scn_TS1.write(cre_line_wind_calm + conf_line_wind_calm + flyturn_line + wpt_lines_wind_calm)
+    scn_TS2.write(cre_line_wind_calm + conf_line_wind_calm + flyturn_line + wpt_lines_wind_calm + gf_lines_wind_calm)
+    scn_TS3.write(wind_line + cre_line_wind + conf_line_wind + flyturn_line + wpt_lines_wind)
+    scn_TS4.write(wind_line + cre_line_wind + conf_line_wind + flyturn_line + wpt_lines_wind + gf_lines_wind)
 
     for j in range(parameters.N_RS):
         batch_TS1.write("00:00:00.00>SCEN test_" + str(i) + "_TS1_RS" + str(j + 1) + "\n")
@@ -210,55 +212,28 @@ for i in range(parameters.N_missions):
         batch_TS3.write(common_lines)
         batch_TS4.write(common_lines)
 
-        # Create conflog
-        batch_TS1.write("00:00:00.00>CRELOG CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
-        batch_TS2.write("00:00:00.00>CRELOG CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
-        batch_TS3.write("00:00:00.00>CRELOG CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
-        batch_TS4.write("00:00:00.00>CRELOG CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
-
-        # Create arealog
-        batch_TS2.write("00:00:00.00>CRELOG AREALOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
-        batch_TS4.write("00:00:00.00>CRELOG AREALOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " 1\n")
-
-        # Add variables to conflog
-        batch_TS1.write("00:00:00.00>CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
-        batch_TS2.write("00:00:00.00>CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
-        batch_TS3.write("00:00:00.00>CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
-        batch_TS4.write("00:00:00.00>CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " ADD FROM traf.cd dist\n")
-
-        # Add variables to arealog
-        batch_TS2.write("00:00:00.00>AREALOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " ADD tools.areafilter.areas\n")
-        batch_TS4.write("00:00:00.00>AREALOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " ADD tools.areafilter.areas\n")
-
         batch_TS1.write("00:00:00.00>PCALL Thesis/TS1/test" + str(i) + ".scn\n")
         batch_TS2.write("00:00:00.00>PCALL Thesis/TS2/test" + str(i) + ".scn\n")
         batch_TS3.write("00:00:00.00>PCALL Thesis/TS3/test" + str(i) + ".scn\n")
         batch_TS4.write("00:00:00.00>PCALL Thesis/TS4/test" + str(i) + ".scn\n")
 
-        # enable conflog
-        batch_TS1.write("00:00:00.00>CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
-        batch_TS2.write("00:00:00.00>CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
-        batch_TS3.write("00:00:00.00>CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
-        batch_TS4.write("00:00:00.00>CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
+        # Use logging plugin to log
+        batch_TS1.write("00:00:00.00>INIT_LOGGERS 1 " + str(j + 1) + "\n")
+        batch_TS2.write("00:00:00.00>INIT_LOGGERS 2 " + str(j + 1) + "\n")
+        batch_TS3.write("00:00:00.00>INIT_LOGGERS 3 " + str(j + 1) + "\n")
+        batch_TS4.write("00:00:00.00>INIT_LOGGERS 4 " + str(j + 1) + "\n")
 
-        # enable arealog
-        batch_TS2.write("00:00:00.00>AREALOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
-        batch_TS4.write("00:00:00.00>AREALOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " ON\n")
-
+        # Fast forward
         batch_TS1.write("00:00:00.00>FF\n")
         batch_TS2.write("00:00:00.00>FF\n")
         batch_TS3.write("00:00:00.00>FF\n")
         batch_TS4.write("00:00:00.00>FF\n")
 
-        # disable conflog
-        batch_TS1.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS1_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
-        batch_TS2.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
-        batch_TS3.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS3_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
-        batch_TS4.write("00:00:00.00>SCHEDULE 00:03:00.00 CONFLOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
-
-        # disable arealog
-        batch_TS2.write("00:00:00.00>AREALOG_TS2_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
-        batch_TS4.write("00:00:00.00>AREALOG_TS4_TEST" + str(i) + "_RS" + str(j + 1) + " OFF\n")
+        # end the loggers and save file
+        batch_TS1.write("00:00:00.00>SCHEDULE 00:03:00.00 STOP_LOGGERS\n")
+        batch_TS2.write("00:00:00.00>SCHEDULE 00:03:00.00 STOP_LOGGERS\n")
+        batch_TS3.write("00:00:00.00>SCHEDULE 00:03:00.00 STOP_LOGGERS\n")
+        batch_TS4.write("00:00:00.00>SCHEDULE 00:03:00.00 STOP_LOGGERS\n")
 
         batch_TS1.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
         batch_TS2.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
