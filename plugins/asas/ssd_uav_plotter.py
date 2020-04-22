@@ -1,7 +1,7 @@
 ''' Conflict resolution based on the SSD algorithm plotter plugin '''
 from bluesky import traf
 from bluesky import settings
-from bluesky.tools import geo
+from bluesky.tools import geo, areafilter
 from bluesky.tools.aero import nm
 import numpy as np
 import matplotlib
@@ -157,10 +157,10 @@ class SSDUAVPlotter(object):
                     circle_lst = [list(map(list, np.flipud((xyc * vmax) + np.array([ve_wind, vn_wind])))), list(map(list, (xyc * vmin) + np.array([ve_wind, vn_wind])))]
                 
                 # Relevant x1,y1,x2,y2 (x0 and y0 are zero in relative velocity space)
-                x1 = (sinqdr + cosqdrtanalpha) * 2. * vmax
-                x2 = (sinqdr - cosqdrtanalpha) * 2. * vmax
-                y1 = (cosqdr - sinqdrtanalpha) * 2. * vmax
-                y2 = (cosqdr + sinqdrtanalpha) * 2. * vmax
+                x1 = (sinqdr + cosqdrtanalpha) * 20. * vmax
+                x2 = (sinqdr - cosqdrtanalpha) * 20. * vmax
+                y1 = (cosqdr - sinqdrtanalpha) * 20. * vmax
+                y2 = (cosqdr + sinqdrtanalpha) * 20. * vmax
                 
                 # SSD for aircraft i
                 # Get indices that belong to aircraft i
@@ -216,7 +216,7 @@ class SSDUAVPlotter(object):
                                         [0, 0],
                                         [np.sin(hdg_sel + 0.0087), np.cos(hdg_sel + 0.0087)]],
                                        dtype=np.float64)
-                        part = pyclipper.scale_to_clipper(tuple(map(tuple, 2.1 * vmax * xyp)))
+                        part = pyclipper.scale_to_clipper(tuple(map(tuple, 20. * vmax * xyp)))
                         pc2 = pyclipper.Pyclipper()
                         pc2.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
                         pc2.AddPath(part, pyclipper.PT_CLIP, True)
@@ -287,7 +287,7 @@ class SSDUAVPlotter(object):
                             else:
                                 qdr_los = qdr[ind[j]]
                             # Length of inner-leg of darttip
-                            leg = 1.1 * vmax / np.cos(beta) * np.array([1, 1, 1, 0])
+                            leg = 20. * vmax / np.cos(beta) * np.array([1, 1, 1, 0])
                             # Angles of darttip
                             angles_los = np.array([qdr_los + 2 * beta, qdr_los, qdr_los - 2 * beta, 0.])
                             # Calculate coordinates (CCW)
@@ -321,7 +321,7 @@ class SSDUAVPlotter(object):
                             y_int = dist_int * nm * np.cos(qdr_int_rad)
                             d_int = np.array([x_int, y_int])
                             trk_int = np.deg2rad(ownship.trk[i_other[j]])
-                            gs_int = np.deg2rad(ownship.gs[i_other[j]])
+                            gs_int = ownship.gs[i_other[j]]
                             v_int = np.array([gs_int * np.sin(trk_int), gs_int * np.cos(trk_int)])
 
                             v_int_dot_y_hats_prime = np.array([])
@@ -380,6 +380,9 @@ class SSDUAVPlotter(object):
 
                             # Loop trough a2s and b2s to construct VOs, categorize them 
                             for k in range(len(a2s)):
+                                # if ownship outside gf segment TODO: UPDATE FOR OUTSIDE the geofence cases!!!!!
+                                if (a2s[k] <= 0):
+                                    continue
                                 # If Ellipse
                                 if (b2s[k] > 0):
                                     ellipse_angles = np.linspace(0., 2. * np.pi, N_angle)
@@ -387,13 +390,14 @@ class SSDUAVPlotter(object):
                                     rotated_ys = np.sqrt(b2s[k]) * np.sin(ellipse_angles) + Cys_2prime[k]
                                 # If hyperbola
                                 else:
-                                    tmax = np.log((2. * vmax + np.sqrt(4. * vmax**2 + a2s[k])) / np.sqrt(a2s[k]))
+                                    tmax = np.log((20. * vmax + np.sqrt(20.**2 * vmax**2 + a2s[k])) / np.sqrt(a2s[k]))
                                     tmin = -tmax
                                     t = np.linspace(tmax, tmin, N_angle)
                                     if (phis_prime_gf[k] > 0):
                                         rotated_xs = -np.sqrt(a2s[k]) * np.cosh(t) + Cxs_2prime[k]
                                     else:
-                                        rotated_xs = np.sqrt(a2s[k]) * np.sinh(t) + Cys_2prime[k]
+                                        rotated_xs = np.sqrt(a2s[k]) * np.cosh(t) + Cxs_2prime[k]
+                                    rotated_ys = np.sqrt(-b2s[k]) * np.sinh(t) + Cys_2prime[k]
                                 non_rotated_xs = rotated_xs * np.cos(phis_total_gf[k]) - rotated_ys * np.sin(phis_total_gf[k])
                                 non_rotated_ys = rotated_xs * np.sin(phis_total_gf[k]) + rotated_ys * np.cos(phis_total_gf[k])
 
