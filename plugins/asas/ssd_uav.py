@@ -201,10 +201,10 @@ class SSDUAV(ConflictResolution):
                     circle_lst = [list(map(list, np.flipud((xyc * vmax) + np.array([ve_wind, vn_wind])))), list(map(list, (xyc * vmin) + np.array([ve_wind, vn_wind])))]
                 
                 # Relevant x1,y1,x2,y2 (x0 and y0 are zero in relative velocity space)
-                x1 = (sinqdr + cosqdrtanalpha) * 2. * vmax
-                x2 = (sinqdr - cosqdrtanalpha) * 2. * vmax
-                y1 = (cosqdr - sinqdrtanalpha) * 2. * vmax
-                y2 = (cosqdr + sinqdrtanalpha) * 2. * vmax
+                x1 = (sinqdr + cosqdrtanalpha) * 20. * vmax
+                x2 = (sinqdr - cosqdrtanalpha) * 20. * vmax
+                y1 = (cosqdr - sinqdrtanalpha) * 20. * vmax
+                y2 = (cosqdr + sinqdrtanalpha) * 20. * vmax
                 
                 # SSD for aircraft i
                 # Get indices that belong to aircraft i
@@ -260,7 +260,7 @@ class SSDUAV(ConflictResolution):
                                         [0, 0],
                                         [np.sin(hdg_sel + 0.0087), np.cos(hdg_sel + 0.0087)]],
                                        dtype=np.float64)
-                        part = pyclipper.scale_to_clipper(tuple(map(tuple, 2.1 * vmax * xyp)))
+                        part = pyclipper.scale_to_clipper(tuple(map(tuple, 20. * vmax * xyp)))
                         pc2 = pyclipper.Pyclipper()
                         pc2.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
                         pc2.AddPath(part, pyclipper.PT_CLIP, True)
@@ -331,7 +331,7 @@ class SSDUAV(ConflictResolution):
                             else:
                                 qdr_los = qdr[ind[j]]
                             # Length of inner-leg of darttip
-                            leg = 1.1 * vmax / np.cos(beta) * np.array([1, 1, 1, 0])
+                            leg = 20. * vmax / np.cos(beta) * np.array([1, 1, 1, 0])
                             # Angles of darttip
                             angles_los = np.array([qdr_los + 2 * beta, qdr_los, qdr_los - 2 * beta, 0.])
                             # Calculate coordinates (CCW)
@@ -431,7 +431,7 @@ class SSDUAV(ConflictResolution):
                                     rotated_ys = np.sqrt(b2s[k]) * np.sin(ellipse_angles) + Cys_2prime[k]
                                 # If hyperbola
                                 else:
-                                    tmax = np.log((2. * vmax + np.sqrt(4. * vmax**2 + a2s[k])) / np.sqrt(a2s[k]))
+                                    tmax = np.log((20. * vmax + np.sqrt(20.**2 * vmax**2 + a2s[k])) / np.sqrt(a2s[k]))
                                     tmin = -tmax
                                     t = np.linspace(tmax, tmin, N_angle)
                                     if (phis_prime_gf[k] > 0):
