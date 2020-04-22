@@ -24,7 +24,7 @@ header_fl_log = \
     'True Airspeed [m/s], ' + \
     'Groundspeed [m/s], ' + \
     'Active waypoint lat [deg], ' + \
-    'Active waypoint lon [deg]' 
+    'Active waypoint lon [deg]'
 
 header_conf_log = \
     '#######################################################\n' + \
@@ -82,10 +82,10 @@ def init_plugin():
         # The command name for your function
         'INIT_LOGGERS': [
             # A short usage string. This will be printed if you type HELP <name> in the BlueSky console
-            'INIT_LOGGERS TS RS TR',
+            'INIT_LOGGERS TS RS',
 
             # A list of the argument types your function accepts.
-            'int, int, int',
+            'int, int',
 
             # The name of your function in this plugin
             logger.initialize,
@@ -122,6 +122,9 @@ class Logger():
     def update(self):
         # Only update if initialized
         if self.initialized:
+            if self.vehicle_at_end_route():
+                self.stop()
+                return
             self.log_fl()
             self.log_conf()
             try:
@@ -132,15 +135,14 @@ class Logger():
                 self.log_gf()
 
 
-    def initialize(self, TS, RS, TR):
+    def initialize(self, TS, RS):
         self.TS = TS
         self.RS = RS
-        self.TR = TR
         self.initialized = True
 
-        self.conf_log = datalog.crelog("CONFLOG_TS" + str(TS) + "_RS" + str(RS) + "_test" + str(TR), None, header_conf_log)
-        self.fl_log = datalog.crelog("FLLOG_TS" + str(TS) + "_RS" + str(RS) + "_test" + str(TR), None, header_fl_log)
-        self.gf_log = datalog.crelog("GFLOG_TS" + str(TS) + "_RS" + str(RS) + "_test" + str(TR), None, header_gf_log)
+        self.conf_log = datalog.crelog("CONFLOG_TS" + str(TS) + "_RS" + str(RS), None, header_conf_log)
+        self.fl_log = datalog.crelog("FLLOG_TS" + str(TS) + "_RS" + str(RS), None, header_fl_log)
+        self.gf_log = datalog.crelog("GFLOG_TS" + str(TS) + "_RS" + str(RS), None, header_gf_log)
 
         self.start()
     
@@ -155,6 +157,7 @@ class Logger():
         self.fl_log.reset()
         self.conf_log.reset()
         self.gf_log.reset()
+        self.initialized = False
 
     def log_conf(self):
         for i in range(len(traf.cd.confpairs)):
@@ -189,3 +192,9 @@ class Logger():
             in_gf = areafilter.checkInside('GF', traf.lat[i], traf.lon[i], traf.alt[i])
             self.gf_log.log(    traf.id[i],
                                 in_gf)
+    
+    def vehicle_at_end_route(self):
+        for i in range(traf.ntraf):
+            if traf.ap.route[i].iactwp < 0:
+                return True
+        return False
