@@ -2,7 +2,7 @@
 
 import numpy as np
 from bluesky import traf
-from bluesky.tools import datalog, areafilter
+from bluesky.tools import datalog, areafilter, geo
 from bluesky.tools.aero import nm, kts
 from bluesky import settings
 
@@ -49,9 +49,8 @@ header_gf_log = \
     'Parameters [Units]:\n' + \
     'Simulation time [s], ' + \
     'Callsign [-], ' + \
-    'In GF [-]'
-    
-
+    'In GF [-], ' + \
+    'Minimal distance to geofence [m]'
 
 ### Initialization function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
@@ -188,10 +187,54 @@ class Logger():
                             traf.actwp.lon)
 
     def log_gf(self):
+        # Load geofence shape
+        geofence = areafilter.areas['GF']
+        # Loop through geofence coordinates
+        coordinates = np.reshape(geofence.coordinates, (int(len(geofence.coordinates) / 2), 2))
+
         for i in range(traf.ntraf):
+            qdrs_gf = np.array([]) # [deg] in hdg CW
+            dists_gf = np.array([]) # [m]
+            for j in range(len(coordinates)):
+                # Calculate relative qdrs and distances of geofence points w.r.t. ownship
+                qdr_gf, dist_gf = geo.qdrdist(traf.lat[i], traf.lon[i], coordinates[j][0], coordinates[j][1])
+                qdrs_gf = np.append(qdrs_gf, qdr_gf)
+                dists_gf = np.append(dists_gf, dist_gf * nm)
+
+            qdrs_gf_rad = np.deg2rad(qdrs_gf)
+            xs_gf = dists_gf * np.sin(qdrs_gf_rad) # [m] East
+            ys_gf = dists_gf * np.cos(qdrs_gf_rad) # [m] North
+
+            # Generate data for each geofence segment 0 to 1, 1 to 2, 2 to 3 ..... n to 0.
+            dxs_gf = np.array([])
+            dys_gf = np.array([])
+            for j in range(len(coordinates)):
+                x_from = xs_gf[j]
+                y_from = ys_gf[j]
+                # if last elament (needs to be connected to first element)
+                if j == (len(coordinates) - 1):
+                    x_to = xs_gf[0]
+                    y_to = ys_gf[0]
+                else:
+                    x_to = xs_gf[j + 1]
+                    y_to = ys_gf[j + 1]
+                
+                dxs_gf = np.append(dxs_gf, x_to - x_from)
+                dys_gf = np.append(dys_gf, y_to - y_from)
+
+            # calculate values (phis) of rotation of geofence segments
+            phis_gf = np.arctan2(dys_gf, dxs_gf)
+            #x_hats_prime = np.transpose(np.array([np.cos(phis_gf), np.sin(phis_gf)]))
+            y_hats_prime = np.transpose(np.array([-np.sin(phis_gf), np.cos(phis_gf)]))
+
+            ds_geo = np.array([]) # [m] Array of distanced w.r.t. geofence of wonship
+            for j in range(len(xs_gf)):
+                ds_geo = np.append(ds_geo, -np.dot(np.array([xs_gf[j], ys_gf[j]]), y_hats_prime[j]))
+
             in_gf = areafilter.checkInside('GF', traf.lat[i], traf.lon[i], traf.alt[i])
             self.gf_log.log(    traf.id[i],
-                                in_gf)
+                                in_gf,
+                                min(ds_geo))
     
     def vehicle_at_end_route(self):
         for i in range(traf.ntraf):
