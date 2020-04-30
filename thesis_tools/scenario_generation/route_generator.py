@@ -61,6 +61,18 @@ def generate_route():
         windspeed = wind_data[i]['speed'] # Wind soeed [m/s]
         wind_dir = np.deg2rad(wind_data[i]['direction']) # Wind direction where the wind is coming from
 
+        # normal vector generation of gf0 segment outwards
+        gf0_side = scenario_data[i]["gf0_side"]
+        if (gf0_side == "Left"):
+            course_rad = np.deg2rad(scenario_data[i]['trk0']) - 0.5 * np.pi
+        else:
+            course_rad = np.deg2rad(scenario_data[i]['trk0']) + 0.5 * np.pi
+        n_gf0 = np.array([np.sin(course_rad), np.cos(course_rad)])
+
+        # a and u paramter of r = a + lambda u equation for gf0 segment
+        a_gf0 = n_gf0 * parameters.gf_margin_dist
+        u_gf0 = np.array([np.sin(np.deg2rad(scenario_data[i]['trk0'])), np.cos(np.deg2rad(scenario_data[i]['trk0']))])
+
         # assume 2 vehicles:
         for j in range(2):
             data_entry = {} # Constant for windy and wind calm conditions
@@ -70,12 +82,11 @@ def generate_route():
             data_entry_wind['points'] = []
             data_entry['trk'] = []
             if (j==0):
-                data_entry['trk'].append(np.deg2rad(scenario_data[i]['trk0']))
+                trk_rad = np.deg2rad(scenario_data[i]['trk0'])
                 data_entry_wind_calm['points'].append([0., 0.])
                 data_entry_wind['points'].append([0., 0.])
             else:
                 trk_rad = np.deg2rad(scenario_data[i]['trk0'] + scenario_data[i]['d_psi'])
-                data_entry['trk'].append(trk_rad)
                 # Determine start point of conflicting vehicle for wind and wind calm conditions
                 # without wind (gs = airspeed)
                 v_rel_e = scenario_data[i]['spd0'] * np.sin(np.deg2rad(scenario_data[i]['trk0'])) - scenario_data[i]['spd1'] * np.sin(trk_rad)
@@ -118,23 +129,54 @@ def generate_route():
             k = 0
             while (not route_done):
                 # Create new target
-                previous_coordinate_wind_calm = data_entry_wind_calm['points'][-1]
-                previous_coordinate_wind = data_entry_wind['points'][-1]
-                if k != 0:
-                    data_entry['trk'].append(random.uniform(0, 2. * np.pi))
-                    
+                previous_coordinate_wind_calm = np.array(data_entry_wind_calm['points'][-1])
+                previous_coordinate_wind = np.array(data_entry_wind['points'][-1])
+
+                valid_leg = False
+                while (not valid_leg):
+                    if k != 0:
+                        trk_rad = random.uniform(0, 2. * np.pi)
+
+                    gs_wind = airspeed_to_groundspeed(airspeed[j], trk_rad, windspeed, wind_dir)
+
+                    # Check if trk is converging to predefined GF segment:
+                    u_trk = np.array([np.sin(trk_rad), np.cos(trk_rad)])
+                    if ((np.dot(n_gf0, u_trk) > 0) and not( k == 0 and j == 0)):
+                        # Caluclate maximum leg time from distance if converging
+                        # for wind calm conditions
+                        max_dist_gf0 = calc_dist_to_crossing(a_gf0, u_gf0, previous_coordinate_wind_calm, u_trk)
+                        max_time_gf0 = max_dist_gf0 / airspeed[j]
+
+                        # for windy conditions
+                        max_dist_gf0_wind = calc_dist_to_crossing(a_gf0, u_gf0, previous_coordinate_wind, u_trk)
+                        max_time_gf0_wind = max_dist_gf0_wind / gs_wind
+
+                        # maximum possible leg time such that gf0 segment will not be crossed
+                        max_leg_time_gf0 = min(max_time_gf0, max_time_gf0_wind)
+
+                        if (max_leg_time_gf0 > parameters.t_leg_min):
+                            if (max_leg_time_gf0 > parameters.t_leg_max):
+                                leg_time = random.uniform(parameters.t_leg_min, parameters.t_leg_max)
+                            else:
+                                leg_time = random.uniform(parameters.t_leg_min, max_leg_time_gf0)
+                            valid_leg = True
+
+                    else:
+                        leg_time = random.uniform(parameters.t_leg_min, parameters.t_leg_max)
+                        valid_leg = True
+                        
                 # Create waypoint
-                gs_wind = airspeed_to_groundspeed(airspeed[j], data_entry['trk'][-1], windspeed, wind_dir)
-                data_entry_wind_calm['gs'].append(airspeed[j])
-                data_entry_wind['gs'].append(gs_wind)
-                leg_time = random.uniform(parameters.t_leg_min, parameters.t_leg_max)
                 if (j == 0):
                     leg_distance = leg_time * max(gs_wind, scenario_data[i]['spd0'])
                 else:
                     leg_distance = leg_time * max(gs_wind, scenario_data[i]['spd1'])
-                relative_coordinate = [leg_distance * np.sin(data_entry['trk'][-1]), leg_distance * np.cos(data_entry['trk'][-1])] # [east, north]
+                relative_coordinate = [leg_distance * np.sin(trk_rad), leg_distance * np.cos(trk_rad)] # [east, north]
                 absolute_coordinate_wind_calm = [previous_coordinate_wind_calm[0] + relative_coordinate[0], previous_coordinate_wind_calm[1] + relative_coordinate[1]]
                 absolute_coordinate_wind = [previous_coordinate_wind[0] + relative_coordinate[0], previous_coordinate_wind[1] + relative_coordinate[1]]
+
+                data_entry['trk'].append(trk_rad)
+                data_entry_wind_calm['gs'].append(airspeed[j])
+                data_entry_wind['gs'].append(gs_wind)
                 data_entry_wind_calm['points'].append(absolute_coordinate_wind_calm)
                 data_entry_wind['points'].append(absolute_coordinate_wind)
 
@@ -167,3 +209,22 @@ def generate_route():
     route_wind_json_file = open(location + "/route_wind.json", "w")
     route_wind_json_file.write(route_data_wind_json)
     route_wind_json_file.close()
+
+def calc_dist_to_crossing(a_gf, u_gf, a_loc, u_loc):
+    # solve using linalg
+    a_gf_x = a_gf[0]
+    a_gf_y = a_gf[1]
+
+    u_gf_x = u_gf[0]
+    u_gf_y = u_gf[1]
+
+    a_loc_x = a_loc[0]
+    a_loc_y = a_loc[1]
+
+    u_loc_x = u_loc[0]
+    u_loc_y = u_loc[1]
+
+    a = np.array([[u_loc_x, -u_gf_x], [u_loc_y, -u_gf_y]])
+    b = np.array([a_gf_x - a_loc_x, a_gf_y - a_loc_y])
+    lambdas = np.linalg.solve(a, b)
+    return lambdas[0]

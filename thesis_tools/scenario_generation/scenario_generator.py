@@ -61,6 +61,9 @@ def generate_scenario():
         hdg0_wind = np.rad2deg(trk_to_hdg(np.deg2rad(trk0), spd0, wind_data[i]['speed'], np.deg2rad(wind_data[i]['direction'])))
         data_entry['hdg0_wind'] = hdg0_wind
 
+        gf0_side = random.choice(["Left", "Right"])
+        data_entry['gf0_side'] = gf0_side
+
         spd1 = None
         if (aircraft_data[i][1]['type'] == 'RC'):
             spd1 = random.uniform(max(parameters.min_vel_RC, wind_data[i]['speed']), aircraft_data[i][1]['v_max'])
@@ -68,7 +71,10 @@ def generate_scenario():
             spd1 = random.uniform(max(aircraft_data[i][1]['v_min'], wind_data[i]['speed']), aircraft_data[i][1]['v_max'])
         data_entry['spd1'] = spd1
 
-        d_psi = random.uniform(0., 360.)
+        if (gf0_side == "Left"):
+            d_psi = random.uniform(-180., 0.)
+        else: # Right
+            d_psi = random.uniform(0., 180.)
         data_entry['d_psi'] = d_psi
 
         dist_cpa = random.uniform(0., parameters.R_PZ)
