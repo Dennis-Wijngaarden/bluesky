@@ -148,8 +148,13 @@ for i in range(parameters.N_missions):
     # Create conflicitng UAV in scenario for windy scenarios
     conf_line_wind = "00:00:00.00>CRECONFS UAV1 UAV_" + str(i) + "_1 UAV0 " + str(scenario_data[i]['d_psi']) + " " + str(scenario_data[i]['dist_cpa'] / nm) + " " +\
             str(parameters.t_la + parameters.t_extra) + " 0 0 " + str(route_wind_data[i][1]['gs'][0] / kts) + "\n"
+    
+    # Set bank limits for UAVs
+    bank_limit_lines =  "00:00:00.00>BANK UAV0 " + str(parameters.max_bank_angle) + "\n" +\
+                        "00:00:00.00>BANK UAV1 " + str(parameters.max_bank_angle) + "\n"
 
-    flyturn_line = "00:00:00.00>ADDWPT UAV0 FLYOVER\n"
+    flyturn_lines = "00:00:00.00>ADDWPT UAV0 FLYOVER\n" +\
+                    "00:00:00.00>ADDWPT UAV1 FLYOVER\n"
 
     # Create routes for wind calm scenarios
     wpt_lines_wind_calm = ""
@@ -191,10 +196,10 @@ for i in range(parameters.N_missions):
     wind_line = "00:00:00.00>WIND 0 0 1000 " + str(wind_data[i]['direction']) + " " + str(wind_data[i]['speed'] / kts) + "\n"
 
     # Write scenario files
-    scn_TS1.write(cre_line_wind_calm + conf_line_wind_calm + flyturn_line + wpt_lines_wind_calm)
-    scn_TS2.write(cre_line_wind_calm + conf_line_wind_calm + flyturn_line + wpt_lines_wind_calm + gf_lines_wind_calm)
-    scn_TS3.write(wind_line + cre_line_wind + conf_line_wind + flyturn_line + wpt_lines_wind)
-    scn_TS4.write(wind_line + cre_line_wind + conf_line_wind + flyturn_line + wpt_lines_wind + gf_lines_wind)
+    scn_TS1.write(cre_line_wind_calm + conf_line_wind_calm + bank_limit_lines + flyturn_lines + wpt_lines_wind_calm)
+    scn_TS2.write(cre_line_wind_calm + conf_line_wind_calm + bank_limit_lines + flyturn_lines + wpt_lines_wind_calm + gf_lines_wind_calm)
+    scn_TS3.write(wind_line + cre_line_wind + conf_line_wind + bank_limit_lines + flyturn_lines + wpt_lines_wind)
+    scn_TS4.write(wind_line + cre_line_wind + conf_line_wind + bank_limit_lines + flyturn_lines + wpt_lines_wind + gf_lines_wind)
 
     for j in range(parameters.N_RS):
         batch_TS1.write("00:00:00.00>SCEN test_" + str(i) + "_TS1_RS" + str(j + 1) + "\n")

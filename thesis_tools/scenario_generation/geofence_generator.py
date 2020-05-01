@@ -69,6 +69,11 @@ def generate_geofence(loc_route, loc_output):
         print("first generate route using route_generator.py")
         exit()
 
+    # Check if there is a scenario.json, otherwise stop
+    if (not os.path.isfile("thesis_tools/data/scenario.json")):
+        print("first generate wind using scenario_generator.py")
+        exit()
+
     # initialize randomizeer
     random.seed()
 
@@ -79,6 +84,11 @@ def generate_geofence(loc_route, loc_output):
     route_json = open(loc_route, "r")
     route_data = json.load(route_json)
     route_json.close()
+
+    # Load scenario data from scenario.json
+    scenario_json = open("thesis_tools/data/scenario.json", "r")
+    scenario_data = json.load(scenario_json)
+    scenario_json.close()
 
     for i in range(parameters.N_missions):
         # Add list to geofence data to store geofence points for mission
@@ -93,6 +103,9 @@ def generate_geofence(loc_route, loc_output):
         # Determine outer points of routes CCW
         route_hull = ConvexHull(points = np.concatenate((np.array(route_data[i][0]['points']), np.array(route_data[i][1]['points'])), axis=0))
         points = np.concatenate((np.array(route_data[i][0]['points']), np.array(route_data[i][1]['points'])))[route_hull.vertices].tolist()
+
+        # Determine max turn radius
+        turn_radi = max(scenario_data[i]["turn_rad0"], scenario_data[i]["turn_rad1"])
 
         for k in range(len(points)):
             segments = [None, None] # Route segments of adjacent points
@@ -116,7 +129,7 @@ def generate_geofence(loc_route, loc_output):
             angle_min, angle_max, angle_mid, dist_min = get_trk_range(segments[0].trk, segments[1].trk)
             
             angle = random.uniform(angle_min, angle_max)
-            radius = random.uniform(0., parameters.max_gf_dist)
+            radius = random.uniform(0., 2. * turn_radi + parameters.max_gf_dist)
             dx = radius * np.sin(angle) + dist_min * np.sin(angle_mid) # dx from points[k]
             dy = radius * np.cos(angle) + dist_min * np.cos(angle_mid)# dy from points[k]
             point = [points[k][0] + dx, points[k][1] + dy]

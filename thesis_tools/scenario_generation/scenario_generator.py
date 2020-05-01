@@ -54,6 +54,7 @@ def generate_scenario():
         else:
             spd0 = random.uniform(max(aircraft_data[i][0]['v_min'], wind_data[i]['speed']), aircraft_data[i][0]['v_max'])
         data_entry['spd0'] = spd0
+        data_entry['turn_rad0'] = abs(spd0**2 / (np.tan(np.deg2rad(parameters.max_bank_angle)) * 9.80665))
 
         trk0 = random.uniform(0., 360.)
         data_entry['trk0'] = trk0
@@ -70,6 +71,7 @@ def generate_scenario():
         else:
             spd1 = random.uniform(max(aircraft_data[i][1]['v_min'], wind_data[i]['speed']), aircraft_data[i][1]['v_max'])
         data_entry['spd1'] = spd1
+        data_entry['turn_rad1'] = abs(spd1**2 / (np.tan(np.deg2rad(parameters.max_bank_angle)) * 9.80665))
 
         if (gf0_side == "Left"):
             d_psi = random.uniform(-180., 0.)
