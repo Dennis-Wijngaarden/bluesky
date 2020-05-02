@@ -27,7 +27,7 @@ def intersect_angle_ranges(angles1, angles2):
     max_angle = min(angles1[1], angles2[1])
     return np.array([min_angle, max_angle])
 
-def get_trk_range(trk0, trk1):
+def get_trk_range(trk0, trk1, turn_radi):
     # First assume trk0 is minimum
     trk_0 = trk0
     trk_1 = trk1
@@ -42,7 +42,7 @@ def get_trk_range(trk0, trk1):
         angle_diff = angle_max - angle_min
         half_angle = angle_diff / 2.
 
-        dist_min = parameters.R_PZ / np.sin(half_angle)
+        dist_min = (2. * turn_radi + parameters.R_PZ) / np.sin(half_angle)
 
         return angle_min, angle_max, angle_mid, dist_min
     
@@ -126,12 +126,12 @@ def generate_geofence(loc_route, loc_output):
                 segments[1] = RouteSegment(points[k + 1], points[k])
 
             # Calc angle range
-            angle_min, angle_max, angle_mid, dist_min = get_trk_range(segments[0].trk, segments[1].trk)
+            angle_min, angle_max, angle_mid, dist_min = get_trk_range(segments[0].trk, segments[1].trk, turn_radi)
             
             angle = random.uniform(angle_min, angle_max)
-            radius = random.uniform(0., 2. * turn_radi + parameters.max_gf_dist)
+            radius = random.uniform(0., parameters.max_gf_dist)
             dx = radius * np.sin(angle) + dist_min * np.sin(angle_mid) # dx from points[k]
-            dy = radius * np.cos(angle) + dist_min * np.cos(angle_mid)# dy from points[k]
+            dy = radius * np.cos(angle) + dist_min * np.cos(angle_mid) # dy from points[k]
             point = [points[k][0] + dx, points[k][1] + dy]
             data_entry['points'].append(point)
             data_entry['qdr'].append(np.rad2deg(np.arctan2(point[0], point[1])))
