@@ -218,7 +218,7 @@ for i in range(parameters.N_missions):
     scn_TS2.write(cre_line_wind_calm + conf_line_wind_calm + bank_limit_lines + flyturn_lines + wpt_lines_wind_calm + gf_lines_wind_calm)
     scn_TS3.write(wind_line + cre_line_wind + conf_line_wind + bank_limit_lines + flyturn_lines + wpt_lines_wind)
     scn_TS4.write(wind_line + cre_line_wind + conf_line_wind + bank_limit_lines + flyturn_lines + wpt_lines_wind + gf_lines_wind)
-    scn_TS0.write(wind_line + cre_line_wind + conf_line_wind + bank_limit_lines + flyturn_lines + wpt_lines_wind + gf_lines_wind)
+    scn_TS5.write(wind_line + cre_line_wind + conf_line_wind + bank_limit_lines + flyturn_lines + wpt_lines_wind + gf_lines_wind)
 
     # write batch files of check testseries (1 and 5)
     batch_TS0.write("00:00:00.00>SCEN test_" + str(i) + "_TS0\n")
@@ -229,7 +229,7 @@ for i in range(parameters.N_missions):
     batch_TS0.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
 
     batch_TS5.write("00:00:00.00>SCEN test_" + str(i) + "_TS5\n")
-    batch_TS5.write("00:00:00.00>PCALL Thesis/TS0/test" + str(i) + ".scn\n")
+    batch_TS5.write("00:00:00.00>PCALL Thesis/TS5/test" + str(i) + ".scn\n")
     batch_TS5.write("00:00:00.00>INIT_LOGGERS 5 0\n")
     batch_TS5.write("00:00:00.00>FF\n")
     batch_TS5.write("00:00:00.00>SCHEDULE 00:03:00.00 STOP_LOGGERS\n")

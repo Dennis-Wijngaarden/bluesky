@@ -65,6 +65,8 @@ def filter_flight_reference_data(raw_fl_data_log, callsigns_log, callsign):
     lat0 = raw_fl_data[0][8]
     lon0 = raw_fl_data[0][9]
     leg_finished = False
+    time = 0.
+    distance = 0.
     for i in range(len(raw_fl_data)):
         if ((raw_fl_data[i][8] != lat0) or (raw_fl_data[i][9] != lon0)):
             time = raw_fl_data[i][0]
