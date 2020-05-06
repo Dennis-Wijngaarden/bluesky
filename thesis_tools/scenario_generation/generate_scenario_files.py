@@ -230,7 +230,7 @@ for i in range(parameters.N_missions):
 
     batch_TS5.write("00:00:00.00>SCEN test_" + str(i) + "_TS5\n")
     batch_TS5.write("00:00:00.00>PCALL Thesis/TS0/test" + str(i) + ".scn\n")
-    batch_TS5.write("00:00:00.00>INIT_LOGGERS 0 0\n")
+    batch_TS5.write("00:00:00.00>INIT_LOGGERS 5 0\n")
     batch_TS5.write("00:00:00.00>FF\n")
     batch_TS5.write("00:00:00.00>SCHEDULE 00:03:00.00 STOP_LOGGERS\n")
     batch_TS5.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")

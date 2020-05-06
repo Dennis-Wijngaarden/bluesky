@@ -81,7 +81,7 @@ def filter_geofence_reference_date(raw_gf_data_log, callsigns_log, callsign):
     violation = min_gf_dist < 0
     return min_gf_dist, violation
 
-analyse_reference(0, "output")
+analyse_reference(5, "output")
 
 def analyse_ruleset_in_testseries(TS, RS, path):
     # Read files in path folder
