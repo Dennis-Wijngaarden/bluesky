@@ -103,6 +103,9 @@ if not os.path.exists(loc_TS3):
 loc_TS4 = loc_thesis_scns + "/TS4"
 if not os.path.exists(loc_TS4):
     os.makedirs(loc_TS4)
+loc_TS5 = loc_thesis_scns + "/TS5"
+if not os.path.exists(loc_TS5):
+    os.makedirs(loc_TS5)
 
 # Empty file locations
 filelist = [ f for f in os.listdir(loc_TS0) if f.endswith(".scn") ]
@@ -124,6 +127,9 @@ for f in filelist:
 filelist = [ f for f in os.listdir(loc_TS4) if f.endswith(".scn") ]
 for f in filelist:
     os.remove(os.path.join(loc_TS4, f))
+filelist = [ f for f in os.listdir(loc_TS5) if f.endswith(".scn") ]
+for f in filelist:
+    os.remove(os.path.join(loc_TS5, f))
 
 # Create batch files
 batch_TS0 = open(loc_TS0 + "/batch.scn", "w")
@@ -131,6 +137,7 @@ batch_TS1 = open(loc_TS1 + "/batch.scn", "w")
 batch_TS2 = open(loc_TS2 + "/batch.scn", "w")
 batch_TS3 = open(loc_TS3 + "/batch.scn", "w")
 batch_TS4 = open(loc_TS4 + "/batch.scn", "w")
+batch_TS5 = open(loc_TS5 + "/batch.scn", "w")
 
 # Loop over mission
 for i in range(parameters.N_missions):
@@ -140,6 +147,7 @@ for i in range(parameters.N_missions):
     scn_TS2 = open(loc_TS2 + "/test" + str(i) + ".scn", "w")
     scn_TS3 = open(loc_TS3 + "/test" + str(i) + ".scn", "w")
     scn_TS4 = open(loc_TS4 + "/test" + str(i) + ".scn", "w")
+    scn_TS5 = open(loc_TS5 + "/test" + str(i) + ".scn", "w")
 
     # Write scenario files
     # Create first UAV in scenario for wind calm test series
@@ -210,6 +218,7 @@ for i in range(parameters.N_missions):
     scn_TS2.write(cre_line_wind_calm + conf_line_wind_calm + bank_limit_lines + flyturn_lines + wpt_lines_wind_calm + gf_lines_wind_calm)
     scn_TS3.write(wind_line + cre_line_wind + conf_line_wind + bank_limit_lines + flyturn_lines + wpt_lines_wind)
     scn_TS4.write(wind_line + cre_line_wind + conf_line_wind + bank_limit_lines + flyturn_lines + wpt_lines_wind + gf_lines_wind)
+    scn_TS0.write(wind_line + cre_line_wind + conf_line_wind + bank_limit_lines + flyturn_lines + wpt_lines_wind + gf_lines_wind)
 
     # write batch files of check testseries (1 and 5)
     batch_TS0.write("00:00:00.00>SCEN test_" + str(i) + "_TS0\n")
@@ -218,6 +227,13 @@ for i in range(parameters.N_missions):
     batch_TS0.write("00:00:00.00>FF\n")
     batch_TS0.write("00:00:00.00>SCHEDULE 00:03:00.00 STOP_LOGGERS\n")
     batch_TS0.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
+
+    batch_TS5.write("00:00:00.00>SCEN test_" + str(i) + "_TS5\n")
+    batch_TS5.write("00:00:00.00>PCALL Thesis/TS0/test" + str(i) + ".scn\n")
+    batch_TS5.write("00:00:00.00>INIT_LOGGERS 0 0\n")
+    batch_TS5.write("00:00:00.00>FF\n")
+    batch_TS5.write("00:00:00.00>SCHEDULE 00:03:00.00 STOP_LOGGERS\n")
+    batch_TS5.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
 
     for j in range(parameters.N_RS):
         batch_TS1.write("00:00:00.00>SCEN test_" + str(i) + "_TS1_RS" + str(j + 1) + "\n")
@@ -269,6 +285,7 @@ for i in range(parameters.N_missions):
     scn_TS2.close()
     scn_TS3.close()
     scn_TS4.close()
+    scn_TS5.close()
 
 # Close batch files
 batch_TS0.close()
@@ -276,3 +293,4 @@ batch_TS1.close()
 batch_TS2.close()
 batch_TS3.close()
 batch_TS4.close()
+batch_TS5.close()
