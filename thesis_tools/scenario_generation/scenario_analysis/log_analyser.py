@@ -4,6 +4,85 @@ import os
 
 log_interval = 1.0 # [s]
 
+def analyse_reference(TS, path):
+    # Read files in path folder
+    files = os.listdir(path)
+    
+    # Sort filenames by log types in the following lists
+    fllog_files = []
+    gflog_files = []
+    for i in range(len(files)):
+        if (("TS" + str(TS)) in files[i]):
+            if ("FLLOG" in files[i]):
+                fllog_files.append(files[i])
+            elif ("GFLOG" in files[i]):
+                gflog_files.append(files[i])
+    
+    # Store data in arrays using genfromtxt
+    fllog_raw_data = []
+    fllog_callsigns = []
+    gflog_raw_data = []
+    gflog_callsigns = []
+
+    for i in range(len(fllog_files)):
+        fllog_raw_data.append(np.genfromtxt(path + '/' + fllog_files[i], delimiter = ',', usecols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
+        fllog_callsigns.append(np.genfromtxt(path + '/' + fllog_files[i], delimiter = ',', usecols = [1], dtype=str))
+
+        gflog_raw_data.append(np.genfromtxt(path + '/' + gflog_files[i], delimiter = ',', usecols = [3]))
+        gflog_callsigns.append(np.genfromtxt(path + '/' + gflog_files[i], delimiter = ',', usecols = [1], dtype=str))
+
+    csv_text = "#time0 [s], distance0 [-], leg_finished_0 [-], min_gf_dist0 [m], violation0 [-], time1 [s], distance1 [-], leg_finished_1 [-], min_gf_dist1 [m], violation1 [-], scen_valid [-]\n"
+    for i in range(len(fllog_raw_data)):
+        # First leg data
+        # check if first leg is finished
+        time0, distance0, leg_finished0 = filter_flight_reference_data(fllog_raw_data[i], fllog_callsigns[i], "UAV0")
+        time1, distance1, leg_finished1 = filter_flight_reference_data(fllog_raw_data[i], fllog_callsigns[i], "UAV1")
+
+        # Geofence data
+        # check if negative geofence distance
+        min_gf_dist0, violation0 = filter_geofence_reference_date(gflog_raw_data[i], gflog_callsigns[i], "UAV0")
+        min_gf_dist1, violation1 = filter_geofence_reference_date(gflog_raw_data[i], gflog_callsigns[i], "UAV1")
+
+        # validaty data
+        validity = leg_finished0 and leg_finished1 and not violation0 and not violation1
+
+        # write line to csv
+        csv_text += str(time0) + ', ' + str(distance0) + ', ' + str(leg_finished0) + ', ' + str(min_gf_dist0) + ", " + str(violation0) + ', ' +\
+                    str(time1) + ', ' + str(distance1) + ', ' + str(leg_finished1) + ', ' + str(min_gf_dist1) + ", " + str(violation1) + ', ' +\
+                    str(validity) + '\n'
+    
+    # write reference csv to file
+    reference_csv_file = open('thesis_tools/results/reference/ref_TS' + str(TS) + '.csv', 'w')
+    reference_csv_file.write(csv_text)
+    reference_csv_file.close()
+
+
+def filter_flight_reference_data(raw_fl_data_log, callsigns_log, callsign):
+    indices = np.where(callsigns_log == callsign)
+    raw_fl_data = raw_fl_data_log[indices]
+
+    # check line where active waypoint changes
+    lat0 = raw_fl_data[0][8]
+    lon0 = raw_fl_data[0][9]
+    leg_finished = False
+    for i in range(len(raw_fl_data)):
+        if ((raw_fl_data[i][8] != lat0) or (raw_fl_data[i][9] != lon0)):
+            time = raw_fl_data[i][0]
+            distance = raw_fl_data[i][3]
+            leg_finished = True
+            break
+    return time, distance, leg_finished
+
+def filter_geofence_reference_date(raw_gf_data_log, callsigns_log, callsign):
+    # Determine rows for which 'callsign' is the ownship
+    indices = np.where(callsigns_log == callsign)
+    raw_gf_data = raw_gf_data_log[indices]
+    min_gf_dist = min(raw_gf_data)
+    violation = min_gf_dist < 0
+    return min_gf_dist, violation
+
+analyse_reference(0, "output")
+
 def analyse_ruleset_in_testseries(TS, RS, path):
     # Read files in path folder
     files = os.listdir(path)
