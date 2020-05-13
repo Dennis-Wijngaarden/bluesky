@@ -31,6 +31,7 @@ def analyse_reference(TS, path):
         gflog_raw_data.append(np.genfromtxt(path + '/' + gflog_files[i], delimiter = ',', usecols = [3]))
         gflog_callsigns.append(np.genfromtxt(path + '/' + gflog_files[i], delimiter = ',', usecols = [1], dtype=str))
 
+    invalid_missions = []
     csv_text = "#time0 [s], distance0 [-], leg_finished_0 [-], min_gf_dist0 [m], violation0 [-], time1 [s], distance1 [-], leg_finished_1 [-], min_gf_dist1 [m], violation1 [-], scen_valid [-]\n"
     for i in range(len(fllog_raw_data)):
         # First leg data
@@ -46,6 +47,9 @@ def analyse_reference(TS, path):
         # validaty data
         validity = leg_finished0 and leg_finished1 and not violation0 and not violation1
 
+        if not validity:
+            invalid_missions.append(i)
+
         # write line to csv
         csv_text += str(time0) + ', ' + str(distance0) + ', ' + str(leg_finished0) + ', ' + str(min_gf_dist0) + ", " + str(violation0) + ', ' +\
                     str(time1) + ', ' + str(distance1) + ', ' + str(leg_finished1) + ', ' + str(min_gf_dist1) + ", " + str(violation1) + ', ' +\
@@ -55,6 +59,9 @@ def analyse_reference(TS, path):
     reference_csv_file = open('thesis_tools/results/reference/ref_TS' + str(TS) + '.csv', 'w')
     reference_csv_file.write(csv_text)
     reference_csv_file.close()
+
+    N_missions = len(fllog_files)
+    return invalid_missions, N_missions
 
 
 def filter_flight_reference_data(raw_fl_data_log, callsigns_log, callsign):
@@ -83,9 +90,7 @@ def filter_geofence_reference_date(raw_gf_data_log, callsigns_log, callsign):
     violation = min_gf_dist < 0
     return min_gf_dist, violation
 
-analyse_reference(5, "output")
-
-def analyse_ruleset_in_testseries(TS, RS, path):
+def analyse_ruleset_in_testseries(TS, RS, geofence_defined, path):
     # Read files in path folder
     files = os.listdir(path)
 
@@ -107,39 +112,35 @@ def analyse_ruleset_in_testseries(TS, RS, path):
     fllog_callsigns = []
     conflog_raw_data = []
     conflog_callsigns = []
-    #gflog_raw_data = []
-    #gflog_callsigns = []
+    gflog_raw_data = []
+    gflog_callsigns = []
     for i in range(len(conflog_files)):
         fllog_raw_data.append(np.genfromtxt(path + '/' + fllog_files[i], delimiter = ',', usecols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
         fllog_callsigns.append(np.genfromtxt(path + '/' + fllog_files[i], delimiter = ',', usecols = [1], dtype=str))
 
         conflog_raw_data.append(np.genfromtxt(path + '/' + conflog_files[i], delimiter = ',', usecols = [0, 3, 4, 5, 6, 7]))
         conflog_callsigns.append(np.genfromtxt(path + '/' + conflog_files[i], delimiter = ',', usecols = [1, 2], dtype=str))
+    	
+        if geofence_defined:
+            gflog_raw_data.append(np.genfromtxt(path + '/' + gflog_files[i], delimiter = ',', usecols = [0, 3]))
+            gflog_callsigns.append(np.genfromtxt(path + '/' + gflog_files[i], delimiter = ',', usecols = [1], dtype=str))
 
-    # Determine each single conflict for each vehicle
-    t_conflict = [] # Duration of the conflict
-    min_dist_conflict = [] # Minimal dist encountered during conflict
-    min_t_los_conflict = [] # Minimal time to los during conflict
-    for i in range(len(conflog_raw_data)):
-        # Determine rows for which UAv0 is the ownship
-        conflict_data = filter_raw_conflict_data(conflog_raw_data[i], conflog_callsigns[i], 'UAV0')
+    # Analyse conflicts
+    t_start_conflict, t_conflict, min_dist_conflict, min_t_los_conflict = get_conflict_variables(conflog_raw_data, conflog_callsigns, 'UAV0')
 
-        # Analyse each single conflict occured in scenario
-        t_conflict.append([])
-        min_dist_conflict.append([])
-        min_t_los_conflict.append([])
-        for j in range(len(conflict_data)):
-            t_conflict[i].append(len(conflict_data[j]) * log_interval)
+    # Analyse geofences
+    if geofence_defined:
+        # min distance encountered wrt the geofence
+        min_dist_geofence0 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV0')
+        min_dist_geofence1 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV1')
+        
+        # geo/conflict variables
+        dist_geo_start0, dist_geo_min0 = get_geofence_conflict_variables(conflog_raw_data, conflog_callsigns, gflog_raw_data, gflog_callsigns, 'UAV0')
+        dist_geo_start1, dist_geo_min1 = get_geofence_conflict_variables(conflog_raw_data, conflog_callsigns, gflog_raw_data, gflog_callsigns, 'UAV1')
 
-            dist = []
-            t_los = []
-            for k in range(len(conflict_data[j])):
-                dist.append(conflict_data[j][k][2])
-                t_los.append(conflict_data[j][k][5])
-            min_dist_conflict[i].append(min(dist))
-            min_t_los_conflict[i].append(min(t_los))
-    return t_conflict, min_dist_conflict, min_t_los_conflict
-
+#    min_dist_geo0 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV0')
+#    min_dist_geo1 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV1')
+    return t_conflict, min_dist_conflict, min_t_los_conflict#, min_dist_geo0, min_dist_geo1
 
 def filter_raw_conflict_data(raw_conf_data_log, callsigns_log, callsign):
     # Determine rows for which 'callsign' is the ownship
@@ -169,24 +170,101 @@ def filter_raw_conflict_data(raw_conf_data_log, callsigns_log, callsign):
     
     return conflict_data
 
-t1, dist1, t_los1 = analyse_ruleset_in_testseries(1, 1, "output")
-t3, dist3, t_los3 = analyse_ruleset_in_testseries(1, 3, "output")
+def filter_raw_geofence_data(raw_gf_data_log, callsigns_log, callsign):
+    # Determine rows for which 'callsign' is the ownship
+    indices = np.where(callsigns_log == callsign)
+    geofence_data = raw_gf_data_log[indices]
+    
+    return geofence_data
 
-flat_dist1 = []
-flat_indices1 = []
-for i in range(len(dist1)):
-    for j in range(len(dist1[i])):
-        flat_dist1.append(dist1[i][j])
-        flat_indices1.append(i)
+def get_conflict_variables(conflog_raw_data, conflog_callsigns, callsign):
+    # Determine each single conflict for each vehicle
+    t_start_conflict = [] # Start time of the conflict
+    t_conflict = [] # Duration of the conflict
+    min_dist_conflict = [] # Minimal dist encountered during conflict
+    min_t_los_conflict = [] # Minimal time to los during conflict
+    for i in range(len(conflog_raw_data)):
+        # Determine rows for which UAv0 is the ownship
+        conflict_data = filter_raw_conflict_data(conflog_raw_data[i], conflog_callsigns[i], callsign)
+        # Analyse each single conflict occured in scenario
+        t_start_conflict.append([])
+        t_conflict.append([])
+        min_dist_conflict.append([])
+        min_t_los_conflict.append([])
+        for j in range(len(conflict_data)):
+            t_start_conflict[i].append(conflict_data[j][0][0])
+            t_conflict[i].append(len(conflict_data[j]) * log_interval)
 
-flat_dist3 = []
-flat_indices3 = []
-for i in range(len(dist3)):
-    for j in range(len(dist3[i])):
-        flat_dist3.append(dist3[i][j])
-        flat_indices3.append(i)
+            dist = []
+            t_los = []
+            for k in range(len(conflict_data[j])):
+                dist.append(conflict_data[j][k][2])
+                t_los.append(conflict_data[j][k][5])
+            min_dist_conflict[i].append(min(dist))
+            min_t_los_conflict[i].append(min(t_los))
+    return t_start_conflict, t_conflict, min_dist_conflict, min_t_los_conflict
 
-print(flat_indices1)
-plt.scatter(flat_indices3, flat_dist3)
-plt.scatter(flat_indices1, flat_dist1)
-plt.show()
+def get_geofence_variables(gflog_raw_data, gflog_callsigns, callsign):
+    # Determube minimum geofence distance and violation
+    min_dist_geofence = []
+    min_dist_geofence_time = []
+    for i in range(len(gflog_raw_data)):
+        # Determine for which rows correspond to the ownship
+        gf_data = filter_raw_geofence_data(gflog_raw_data[i], gflog_callsigns[i], callsign)
+        rel_distances = np.array(gf_data)[:,1].tolist()
+        min_dist_geofence.append(min(rel_distances))
+
+        min_dist_geofence_time.append(np.where(gf_data[:,1] == min_dist_geofence[-1])[0][0])
+    
+    return min_dist_geofence, min_dist_geofence_time
+
+def get_geofence_conflict_variables(conflog_raw_data, conflog_callsigns, gflog_raw_data, gflog_callsigns, callsign):
+    # distance wrt to geodence at start of conflict
+    dist_geo_start = [] # distance wrt geofence at the start of a conflict
+    dist_geo_min = [] # minimum distance wrt gefoence during conflict
+    time_geo_min = [] # Time at which distacne wrt geofence is at minimum
+
+    for i in range(len(conflog_raw_data)):
+        # filter conflict data
+        conflict_data = filter_raw_conflict_data(conflog_raw_data[i], conflog_callsigns[i], callsign)
+        gf_data = filter_raw_geofence_data(gflog_raw_data[i], gflog_callsigns[i], callsign)
+        indices_geo_start = [] # indices of gf_data where conflicts start
+        dist_geo_start.append([])
+        dist_geo_min.append([])
+        time_geo_min.append([])
+        for j in range(len(conflict_data)):
+            indices_geo_start.append(np.where(gf_data[:,0] == conflict_data[j][0][0])[0][0])
+            dist_geo_start[i].append(gf_data[indices_geo_start[j]][1])
+            distances_geo = []
+            for k in range(len(conflict_data[j])):
+                index_gf_data = np.where(gf_data[:,0] == conflict_data[j][k][0])
+                distances_geo.append(gf_data[index_gf_data[0][0]][1])
+            dist_geo_min[i].append(min(distances_geo))
+    return dist_geo_start, dist_geo_min
+    
+analyse_ruleset_in_testseries(2, 3, True, 'output')
+
+#generate_performance_reports([0], [0])
+#t1, dist1, t_los1, dist_geo1_0, dist_geo1_1 = analyse_ruleset_in_testseries(1, 1, "output")
+
+#t1, dist1, t_los1, dist_geo1_0, dist_geo1_1 = analyse_ruleset_in_testseries(1, 1, "output")
+#t3, dist3, t_los3, dist_geo3_0, dist_geo3_1 = analyse_ruleset_in_testseries(1, 3, "output")
+
+#flat_dist1 = []
+#flat_indices1 = []
+#for i in range(len(dist1)):
+#    for j in range(len(dist1[i])):
+#        flat_dist1.append(dist1[i][j])
+#        flat_indices1.append(i)
+#
+#flat_dist3 = []
+#flat_indices3 = []
+#for i in range(len(dist3)):
+#    for j in range(len(dist3[i])):
+#        flat_dist3.append(dist3[i][j])
+#        flat_indices3.append(i)
+#
+#print(flat_indices1)
+#plt.scatter(flat_indices3, flat_dist3)
+#plt.scatter(flat_indices1, flat_dist1)
+#plt.show()
