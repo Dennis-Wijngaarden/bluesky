@@ -32,7 +32,7 @@ def generate_wind():
             else:
                 v_max = min(v_max, aircraft_data[i][j]['v_max'])
 
-        data_entry['speed'] = random.uniform(0, v_max) # Wind speed [m/s]
+        data_entry['speed'] = random.uniform(0, v_max - parameters.min_vel_RC) # Wind speed [m/s] and margin of min_vel_RC
         data_entry['direction'] = random.uniform(0., 360.) # Direction from which the wind is blowing
         wind_data.append(data_entry)
 

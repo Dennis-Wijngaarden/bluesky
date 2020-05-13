@@ -155,10 +155,7 @@ def generate_route():
                         max_leg_time_gf0 = min(max_time_gf0, max_time_gf0_wind)
 
                         if (max_leg_time_gf0 > parameters.t_leg_min):
-                            if (max_leg_time_gf0 > parameters.t_leg_max):
-                                leg_time = random.uniform(parameters.t_leg_min, parameters.t_leg_max)
-                            else:
-                                leg_time = random.uniform(parameters.t_leg_min, max_leg_time_gf0)
+                            leg_time = random.uniform(parameters.t_leg_min, min(max_leg_time_gf0, parameters.t_leg_max))
                             valid_leg = True
 
                     else:
@@ -166,10 +163,16 @@ def generate_route():
                         valid_leg = True
                         
                 # Create waypoint
-                if (j == 0):
-                    leg_distance = leg_time * max(gs_wind, scenario_data[i]['spd0'])
+                if (k==0):
+                    if (j == 0):
+                        leg_distance = leg_time * min(gs_wind, scenario_data[i]['spd0'])
+                    else:
+                        leg_distance = leg_time * min(gs_wind, scenario_data[i]['spd1'])
                 else:
-                    leg_distance = leg_time * max(gs_wind, scenario_data[i]['spd1'])
+                    if (j == 0):
+                        leg_distance = leg_time * max(gs_wind, scenario_data[i]['spd0'])
+                    else:
+                        leg_distance = leg_time * max(gs_wind, scenario_data[i]['spd1'])
                 relative_coordinate = [leg_distance * np.sin(trk_rad), leg_distance * np.cos(trk_rad)] # [east, north]
                 absolute_coordinate_wind_calm = [previous_coordinate_wind_calm[0] + relative_coordinate[0], previous_coordinate_wind_calm[1] + relative_coordinate[1]]
                 absolute_coordinate_wind = [previous_coordinate_wind[0] + relative_coordinate[0], previous_coordinate_wind[1] + relative_coordinate[1]]

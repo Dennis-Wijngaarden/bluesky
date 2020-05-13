@@ -4,6 +4,8 @@ import random
 import json
 import os
 
+import route_generator as rg
+
 def trk_to_hdg(trk, airspeed, windspeed, wind_dir):
     wind_ne = np.array([-windspeed * np.cos(wind_dir), -windspeed * np.sin(wind_dir)])
 
@@ -56,7 +58,25 @@ def generate_scenario():
         data_entry['spd0'] = spd0
         data_entry['turn_rad0'] = abs(spd0**2 / (np.tan(np.deg2rad(parameters.max_bank_angle)) * 9.80665))
 
-        trk0 = random.uniform(0., 360.)
+        # Make sure that rime of leg 0 is between t_leg_min and t_leg max of UAV0
+        valid_trk = False
+        wind_speed = wind_data[i]['speed']
+        wind_dir = np.deg2rad(wind_data[i]['direction'])
+        while (not valid_trk):
+            trk0 = random.uniform(0., 360.)
+            # Check gs with wind
+            gs_wind = rg.airspeed_to_groundspeed(spd0, np.deg2rad(trk0), wind_speed, wind_dir)
+            if (gs_wind > spd0):
+                # if max time without wind, does windy condition comply with min time?
+                trk_dist_max = spd0 * parameters.t_leg_max
+                time_min = trk_dist_max / gs_wind
+            else:
+                # if max time with wind, does wind calm condition comply with min time?
+                trk_dist_max = gs_wind * parameters.t_leg_max
+                time_min = trk_dist_max / spd0
+            if (time_min > parameters.t_leg_min):
+                valid_trk = True
+
         data_entry['trk0'] = trk0
 
         hdg0_wind = np.rad2deg(trk_to_hdg(np.deg2rad(trk0), spd0, wind_data[i]['speed'], np.deg2rad(wind_data[i]['direction'])))
@@ -73,10 +93,28 @@ def generate_scenario():
         data_entry['spd1'] = spd1
         data_entry['turn_rad1'] = abs(spd1**2 / (np.tan(np.deg2rad(parameters.max_bank_angle)) * 9.80665))
 
-        if (gf0_side == "Left"):
-            d_psi = random.uniform(-180., 0.)
-        else: # Right
-            d_psi = random.uniform(0., 180.)
+        # Make sure that rime of leg 0 is between t_leg_min and t_leg max of UAV1
+        valid_trk = False
+        while (not valid_trk):
+            if (gf0_side == "Left"):
+                d_psi = random.uniform(-180., 0.)
+            else: # Right
+                d_psi = random.uniform(0., 180.)
+            trk1 = trk0 + d_psi
+
+            # Check gs with wind
+            gs_wind = rg.airspeed_to_groundspeed(spd1, np.deg2rad(trk1), wind_speed, wind_dir)
+            if (gs_wind > spd1):
+                # if max time without wind, does windy condition comply with min time?
+                trk_dist_max = spd1 * parameters.t_leg_max
+                time_min = trk_dist_max / gs_wind
+            else:
+                # if max time with wind, does wind calm condition comply with min time?
+                trk_dist_max = gs_wind * parameters.t_leg_max
+                time_min = trk_dist_max / spd1
+            if (time_min > parameters.t_leg_min):
+                valid_trk = True
+        
         data_entry['d_psi'] = d_psi
 
         dist_cpa = random.uniform(0., parameters.R_PZ)
