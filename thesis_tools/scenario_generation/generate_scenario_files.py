@@ -221,14 +221,14 @@ for i in range(parameters.N_missions):
     scn_TS5.write(wind_line + cre_line_wind + conf_line_wind + bank_limit_lines + flyturn_lines + wpt_lines_wind + gf_lines_wind)
 
     # write batch files of check testseries (1 and 5)
-    batch_TS0.write("00:00:00.00>SCEN test_" + str(i) + "_TS0\n")
+    batch_TS0.write("00:00:00.00>SCEN test_" + "{:06d}".format(i) + "_TS0\n")
     batch_TS0.write("00:00:00.00>PCALL Thesis/TS0/test" + str(i) + ".scn\n")
     batch_TS0.write("00:00:00.00>INIT_LOGGERS 0 0\n")
     batch_TS0.write("00:00:00.00>FF\n")
     batch_TS0.write("00:00:00.00>SCHEDULE 00:03:00.00 STOP_LOGGERS\n")
     batch_TS0.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
 
-    batch_TS5.write("00:00:00.00>SCEN test_" + str(i) + "_TS5\n")
+    batch_TS5.write("00:00:00.00>SCEN test_" + "{:06d}".format(i) + "_TS5\n")
     batch_TS5.write("00:00:00.00>PCALL Thesis/TS5/test" + str(i) + ".scn\n")
     batch_TS5.write("00:00:00.00>INIT_LOGGERS 5 0\n")
     batch_TS5.write("00:00:00.00>FF\n")
@@ -236,10 +236,10 @@ for i in range(parameters.N_missions):
     batch_TS5.write("00:00:00.00>SCHEDULE 00:03:00.00 HOLD\n")
 
     for j in range(parameters.N_RS):
-        batch_TS1.write("00:00:00.00>SCEN test_" + str(i) + "_TS1_RS" + str(j + 1) + "\n")
-        batch_TS2.write("00:00:00.00>SCEN test_" + str(i) + "_TS2_RS" + str(j + 1) + "\n")
-        batch_TS3.write("00:00:00.00>SCEN test_" + str(i) + "_TS3_RS" + str(j + 1) + "\n")
-        batch_TS4.write("00:00:00.00>SCEN test_" + str(i) + "_TS4_RS" + str(j + 1) + "\n")
+        batch_TS1.write("00:00:00.00>SCEN test_" + "{:06d}".format(i) + "_TS1_RS" + str(j + 1) + "\n")
+        batch_TS2.write("00:00:00.00>SCEN test_" + "{:06d}".format(i) + "_TS2_RS" + str(j + 1) + "\n")
+        batch_TS3.write("00:00:00.00>SCEN test_" + "{:06d}".format(i) + "_TS3_RS" + str(j + 1) + "\n")
+        batch_TS4.write("00:00:00.00>SCEN test_" + "{:06d}".format(i) + "_TS4_RS" + str(j + 1) + "\n")
 
         common_lines = ""
         common_lines += "00:00:00.00>ASAS ON\n"

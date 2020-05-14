@@ -1,8 +1,10 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
 import os
+import json
 
 log_interval = 1.0 # [s]
+R_pz = 25.
 
 def analyse_reference(TS, path):
     # Read files in path folder
@@ -60,8 +62,7 @@ def analyse_reference(TS, path):
     reference_csv_file.write(csv_text)
     reference_csv_file.close()
 
-    N_missions = len(fllog_files)
-    return invalid_missions, N_missions
+    return invalid_missions
 
 
 def filter_flight_reference_data(raw_fl_data_log, callsigns_log, callsign):
@@ -114,6 +115,7 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, path):
     conflog_callsigns = []
     gflog_raw_data = []
     gflog_callsigns = []
+
     for i in range(len(conflog_files)):
         fllog_raw_data.append(np.genfromtxt(path + '/' + fllog_files[i], delimiter = ',', usecols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
         fllog_callsigns.append(np.genfromtxt(path + '/' + fllog_files[i], delimiter = ',', usecols = [1], dtype=str))
@@ -131,16 +133,48 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, path):
     # Analyse geofences
     if geofence_defined:
         # min distance encountered wrt the geofence
-        min_dist_geofence0 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV0')
-        min_dist_geofence1 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV1')
+        min_dist_geofence0, min_dist_geofence_time0 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV0')
+        min_dist_geofence1, min_dist_geofence_time1 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV1')
         
         # geo/conflict variables
         dist_geo_start0, dist_geo_min0 = get_geofence_conflict_variables(conflog_raw_data, conflog_callsigns, gflog_raw_data, gflog_callsigns, 'UAV0')
         dist_geo_start1, dist_geo_min1 = get_geofence_conflict_variables(conflog_raw_data, conflog_callsigns, gflog_raw_data, gflog_callsigns, 'UAV1')
 
-#    min_dist_geo0 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV0')
-#    min_dist_geo1 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV1')
-    return t_conflict, min_dist_conflict, min_t_los_conflict#, min_dist_geo0, min_dist_geo1
+    # Determine set of valid scenarios
+    invalid_indices0 = analyse_reference(0, "output") # Wind calm
+    invalid_indices5 = analyse_reference(5, "output") # windy
+
+    valid_indices = list(set(range(len(fllog_files))) - set(invalid_indices0) - set(invalid_indices5))
+
+    # Now write imple json report
+    simple_report = []
+    for i in valid_indices:
+        scenario_line = {} # dictionary with scenario variables
+        scenario_line['scenario'] = i
+        scenario_line["n_conflicts"] = len(min_dist_conflict[i])
+        if len(min_dist_conflict[i]) > 0:
+            scenario_line['min_rel_dist'] = min(min_dist_conflict[i])
+            scenario_line["PZ_violated"] = int(min(min_dist_conflict[i]) < R_pz)
+        else:
+            scenario_line["PZ_violated"] = 0
+
+        if geofence_defined:
+            scenario_line['min_dist_gf0'] = min_dist_geofence0[i]
+            scenario_line['min_dist_gf1'] = min_dist_geofence1[i]
+            if len(min_dist_conflict[i]) > 0:
+                scenario_line['dist_geo_start0'] = min(dist_geo_start0[i])
+                scenario_line['dist_geo_start1'] = min(dist_geo_start1[i])
+            scenario_line['gf_violated0'] = int(min_dist_geofence0[i] < 0)
+            scenario_line['gf_violated1'] = int(min_dist_geofence1[i] < 0)
+        simple_report.append(scenario_line)
+
+    location = "thesis_tools/results/reports"
+    simple_report_json = json.dumps(simple_report, indent=4)
+    simple_report_file = open(location + "/simple_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "w")
+    simple_report_file.write(simple_report_json)
+    simple_report_file.close()
+
+    return
 
 def filter_raw_conflict_data(raw_conf_data_log, callsigns_log, callsign):
     # Determine rows for which 'callsign' is the ownship
@@ -241,8 +275,57 @@ def get_geofence_conflict_variables(conflog_raw_data, conflog_callsigns, gflog_r
                 distances_geo.append(gf_data[index_gf_data[0][0]][1])
             dist_geo_min[i].append(min(distances_geo))
     return dist_geo_start, dist_geo_min
-    
-analyse_ruleset_in_testseries(2, 3, True, 'output')
+
+def generate_reports(TS_list, RS_list, geo_list):
+    geo_idx = 0
+    for TS in TS_list:
+        for RS in RS_list:
+            print("Generate report TS" + str(TS) + " RS" + str(RS))
+            analyse_ruleset_in_testseries(TS, RS, geo_list[geo_idx], "output")
+        geo_idx += 1
+    return
+
+def report_IRPZ(TS_list, RS_list):
+    for TS in TS_list:
+        for RS in RS_list:
+            # open json file:
+            simple_report_json = open("thesis_tools/results/reports/simple_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "r")
+            report_data = json.load(simple_report_json)
+            simple_report_json.close()
+
+            # Now determine irpz
+            n_sim = len(report_data)
+            n_los = 0
+            for i in range(n_sim):
+                if report_data[i]['PZ_violated'] == 1:
+                    n_los += 1
+            print("IRPZ TS" + str(TS) + " RS" + str(RS) + ": " + str(n_los / n_sim))
+    return
+
+def report_VRG(TS_list, RS_list):
+    for TS in TS_list:
+        for RS in RS_list:
+            # open json file:
+            simple_report_json = open("thesis_tools/results/reports/simple_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "r")
+            report_data = json.load(simple_report_json)
+            simple_report_json.close()
+
+            # Now determine irpz
+            n_sim = len(report_data)
+            n_gv = 0
+            for i in range(n_sim):
+                if report_data[i]["gf_violated0"] == 1:
+                    n_gv += 1
+                if report_data[i]["gf_violated1"] == 1:
+                    n_gv += 1
+            print("VRG TS" + str(TS) + " RS" + str(RS) + ": " + str(n_gv / (n_sim * 2.)))
+
+    return
+
+report_IRPZ([1,2,3,4], [1,2,3,4])
+report_VRG([2,4], [1,2,3,4])
+#generate_reports([1,2,3,4], [1,2,3,4], [False, True, False, True])
+#analyse_ruleset_in_testseries(2, 3, True, 'output')
 
 #generate_performance_reports([0], [0])
 #t1, dist1, t_los1, dist_geo1_0, dist_geo1_1 = analyse_ruleset_in_testseries(1, 1, "output")
