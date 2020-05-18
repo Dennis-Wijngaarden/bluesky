@@ -384,7 +384,7 @@ class SSDUAVPlotter(object):
                                 if (a2s[k] <= 0):
                                     continue
                                 # If Ellipse
-                                if (b2s[k] > 0):
+                                elif (b2s[k] > 0):
                                     ellipse_angles = np.linspace(0., 2. * np.pi, N_angle)
                                     rotated_xs = np.sqrt(a2s[k]) * np.cos(ellipse_angles) + Cxs_2prime[k]
                                     rotated_ys = np.sqrt(b2s[k]) * np.sin(ellipse_angles) + Cys_2prime[k]
@@ -392,10 +392,11 @@ class SSDUAVPlotter(object):
                                 else:
                                     tmax = np.log((20. * vmax + np.sqrt(20.**2 * vmax**2 + a2s[k])) / np.sqrt(a2s[k]))
                                     tmin = -tmax
-                                    t = np.linspace(tmax, tmin, N_angle)
                                     if (phis_prime_gf[k] > 0):
+                                        t = np.linspace(tmin, tmax, N_angle)
                                         rotated_xs = -np.sqrt(a2s[k]) * np.cosh(t) + Cxs_2prime[k]
                                     else:
+                                        t = np.linspace(tmax, tmin, N_angle)
                                         rotated_xs = np.sqrt(a2s[k]) * np.cosh(t) + Cxs_2prime[k]
                                     rotated_ys = np.sqrt(-b2s[k]) * np.sinh(t) + Cys_2prime[k]
                                 non_rotated_xs = rotated_xs * np.cos(phis_total_gf[k]) - rotated_ys * np.sin(phis_total_gf[k])
