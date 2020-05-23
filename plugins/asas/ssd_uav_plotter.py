@@ -382,6 +382,7 @@ class SSDUAVPlotter(object):
                             for k in range(len(a2s)):
                                 # if ownship outside gf segment TODO: UPDATE FOR OUTSIDE the geofence cases!!!!!
                                 if (a2s[k] <= 0):
+                                    print("a2 = " + str(a2s[k]) + " b2 = " + str(b2s[k]))
                                     continue
                                 # If Ellipse
                                 elif (b2s[k] > 0):

@@ -50,6 +50,7 @@ class SSDUAV(ConflictResolution):
         return "pyclipper" in sys.modules
     
     def resolve(self, conf, ownship, intruder):
+        print("RESOLVE")
         # Initialize SSD variables with ntraf
         self.initializeSSD(conf, ownship.ntraf)
         
