@@ -152,11 +152,12 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, path):
         scenario_line = {} # dictionary with scenario variables
         scenario_line['scenario'] = i
         scenario_line["n_conflicts"] = len(min_dist_conflict[i])
+        scenario_line['n_PZ_violated'] = 0
         if len(min_dist_conflict[i]) > 0:
             scenario_line['min_rel_dist'] = min(min_dist_conflict[i])
-            scenario_line["PZ_violated"] = int(min(min_dist_conflict[i]) < R_pz)
-        else:
-            scenario_line["PZ_violated"] = 0
+            for j in range(len(min_dist_conflict[i])):
+                if (min_dist_conflict[i][j] < R_pz):
+                    scenario_line['n_PZ_violated'] += 1
 
         if geofence_defined:
             scenario_line['min_dist_gf0'] = min_dist_geofence0[i]
@@ -297,9 +298,27 @@ def report_IRPZ(TS_list, RS_list):
             n_sim = len(report_data)
             n_los = 0
             for i in range(n_sim):
-                if report_data[i]['PZ_violated'] == 1:
+                if report_data[i]['n_PZ_violated'] > 0:
                     n_los += 1
             print("IRPZ TS" + str(TS) + " RS" + str(RS) + ": " + str(n_los / n_sim))
+    return
+
+def report_IPR(TS_list, RS_list):
+    for TS in TS_list:
+        for RS in RS_list:
+            # open json file:
+            simple_report_json = open("thesis_tools/results/reports/simple_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "r")
+            report_data = json.load(simple_report_json)
+            simple_report_json.close()
+
+            # Now determine IPR
+            n_sim = len(report_data)
+            n_cfl = 0
+            n_los = 0
+            for i in range(n_sim):
+                n_cfl += report_data[i]['n_conflicts']
+                n_los += report_data[i]['n_PZ_violated']
+            print("IPR TS" + str(TS) + " RS" + str(RS) + ": " + str(n_los / n_sim))
     return
 
 def report_VRG(TS_list, RS_list):
@@ -322,7 +341,9 @@ def report_VRG(TS_list, RS_list):
 
     return
 
+generate_reports([1,2,3,4], [1,2,3,4], [False, True, False, True])
 report_IRPZ([1,2,3,4], [1,2,3,4])
+report_IPR([1,2,3,4], [1,2,3,4])
 report_VRG([2,4], [1,2,3,4])
 #generate_reports([1,2,3,4], [1,2,3,4], [False, True, False, True])
 #analyse_ruleset_in_testseries(2, 3, True, 'output')
