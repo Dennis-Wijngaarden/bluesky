@@ -318,7 +318,7 @@ def report_IPR(TS_list, RS_list):
             for i in range(n_sim):
                 n_cfl += report_data[i]['n_conflicts']
                 n_los += report_data[i]['n_PZ_violated']
-            print("IPR TS" + str(TS) + " RS" + str(RS) + ": " + str(n_los / n_sim))
+            print("IPR TS" + str(TS) + " RS" + str(RS) + ": " + str((n_cfl - n_los) / n_cfl))
     return
 
 def report_VRG(TS_list, RS_list):
