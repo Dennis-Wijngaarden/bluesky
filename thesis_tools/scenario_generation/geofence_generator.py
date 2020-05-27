@@ -62,6 +62,16 @@ def get_trk_range(trk0, trk1, turn_radi):
 
     return angle_min, angle_max, angle_mid, dist_min
 
+def PolygonArea(corners):
+    n = len(corners)
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += corners[i][0] * corners[j][1]
+        area -= corners[j][0] * corners[i][1]
+    area = abs(area) / 2.0
+    return area
+
 def generate_geofence(loc_route, loc_output):
 
     # Check if there is a route.json, otherwise stop
@@ -136,6 +146,7 @@ def generate_geofence(loc_route, loc_output):
             data_entry['points'].append(point)
             data_entry['qdr'].append(np.rad2deg(np.arctan2(point[0], point[1])))
             data_entry['dist'].append(np.sqrt(point[0]**2 + point[1]**2))
+        data_entry['gf_area'] = PolygonArea(list(map(tuple, data_entry['points'])))
         geofence_data.append(data_entry)
 
     # Write data to json file
