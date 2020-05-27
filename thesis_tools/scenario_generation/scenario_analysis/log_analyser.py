@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import os
 import json
 
+import warnings
+warnings.simplefilter("ignore", UserWarning)
+
 log_interval = 1.0 # [s]
 R_pz = 25.
 
@@ -91,7 +94,7 @@ def filter_geofence_reference_date(raw_gf_data_log, callsigns_log, callsign):
     violation = min_gf_dist < 0
     return min_gf_dist, violation
 
-def analyse_ruleset_in_testseries(TS, RS, geofence_defined, path):
+def analyse_ruleset_in_testseries(TS, RS, geofence_defined, wind_defined, path):
     # Read files in path folder
     files = os.listdir(path)
 
@@ -132,6 +135,10 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, path):
 
     # Analyse geofences
     if geofence_defined:
+        # Get some extra variables regarding geofences
+        dist_geo_0, geo_violated0 = get_geo_variables_for_conflict(t_start_conflict, gflog_raw_data, gflog_callsigns, 'UAV0')
+        dist_geo_1, geo_violated1 = get_geo_variables_for_conflict(t_start_conflict, gflog_raw_data, gflog_callsigns, 'UAV1')
+
         # min distance encountered wrt the geofence
         min_dist_geofence0, min_dist_geofence_time0 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV0')
         min_dist_geofence1, min_dist_geofence_time1 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV1')
@@ -146,8 +153,37 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, path):
 
     valid_indices = list(set(range(len(fllog_files))) - set(invalid_indices0) - set(invalid_indices5))
 
-    # Now write imple json report
-    simple_report = []
+    # Now write conflict report
+    conflict_report = []
+    for i in valid_indices:
+        if wind_defined:
+            # open wind json file
+            # load route data from route.json
+            wind_json = open("thesis_tools/data/wind.json", "r")
+            wind_data = json.load(wind_json)
+            wind_json.close()
+            windspeed = wind_data[i]['speed']
+        for j in range(len(t_start_conflict[i])):
+            conflict_line = {} # dictionary with conflict variable
+            conflict_line['t_conflict'] = t_conflict[i][j]
+            conflict_line['intrusion'] = int(min_dist_conflict[i][j] < R_pz)
+            if wind_defined:
+                conflict_line['windspeed'] = windspeed
+            if geofence_defined:
+                conflict_line['dist_gf0'] = dist_geo_0[i][j]
+                conflict_line['dist_gf1'] = dist_geo_1[i][j]
+                conflict_line['violated_gf0'] = int(geo_violated0[i][j])
+                conflict_line['violated_gf1'] = int(geo_violated1[i][j])
+            conflict_report.append(conflict_line)
+
+    location = "thesis_tools/results/reports"
+    conflict_report_json = json.dumps(conflict_report, indent=4)
+    conflict_report_file = open(location + "/conflict_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "w")
+    conflict_report_file.write(conflict_report_json)
+    conflict_report_file.close()
+
+    # Now write simple json report
+    scenario_report = []
     for i in valid_indices:
         scenario_line = {} # dictionary with scenario variables
         scenario_line['scenario'] = i
@@ -167,13 +203,13 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, path):
                 scenario_line['dist_geo_start1'] = min(dist_geo_start1[i])
             scenario_line['gf_violated0'] = int(min_dist_geofence0[i] < 0)
             scenario_line['gf_violated1'] = int(min_dist_geofence1[i] < 0)
-        simple_report.append(scenario_line)
+        scenario_report.append(scenario_line)
 
     location = "thesis_tools/results/reports"
-    simple_report_json = json.dumps(simple_report, indent=4)
-    simple_report_file = open(location + "/simple_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "w")
-    simple_report_file.write(simple_report_json)
-    simple_report_file.close()
+    scenario_report_json = json.dumps(scenario_report, indent=4)
+    scenario_report_file = open(location + "/scenario_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "w")
+    scenario_report_file.write(scenario_report_json)
+    scenario_report_file.close()
 
     return
 
@@ -239,6 +275,42 @@ def get_conflict_variables(conflog_raw_data, conflog_callsigns, callsign):
             min_t_los_conflict[i].append(min(t_los))
     return t_start_conflict, t_conflict, min_dist_conflict, min_t_los_conflict
 
+def get_geo_variables_for_conflict(t_start_conflict, gflog_raw_data, gflog_callsigns, callsign):
+    # Create lists with distances to geofence and geofence violated after conflict
+    dist_geo = []
+    geo_violated = []
+    for i in range(len(gflog_raw_data)):
+        # Determine for which rows correspond to the ownship
+        gf_data = np.array(filter_raw_geofence_data(gflog_raw_data[i], gflog_callsigns[i], callsign))
+        dist_geo.append([])
+        geo_violated.append([])
+        # Check if there is a violation in general
+        gf_violation_general = min(gf_data[:,1]) < 0
+        for j in range(len(t_start_conflict[i])):
+            idx_start_conflict = np.where(gf_data[:,0] == t_start_conflict[i][j])[0][0]
+            # Find distance w.r.t. geofence at start of conflict
+            dist_geo[i].append(gf_data[idx_start_conflict][1])
+            # Check if geofence is violated after conflict (after current conflict, but before next conflict or end)
+            if (gf_violation_general):
+                # First check if vehicle is at begin of leg inside geofence
+                in_geofence = gf_data[idx_start_conflict][1] > 0
+                if in_geofence:
+                    if (j == (len(t_start_conflict[i]) - 1)):
+                        # This conflict is the final conflict
+                        gf_violated = min(gf_data[idx_start_conflict:,1]) < 0
+                    else:
+                        # This conflict is not the final conflict
+                        idx_start_conflict_next = np.where(gf_data[:,0] == t_start_conflict[i][j+1])[0][0]
+                        gf_violated = min(gf_data[idx_start_conflict:idx_start_conflict_next,1]) < 0
+                else:
+                    # Geofence not violated due to conflict when already outside geofence at begin of conflict
+                    gf_violated = False
+                geo_violated[i].append(gf_violated)
+            else:
+                geo_violated[i].append(False)
+            
+    return dist_geo, geo_violated
+
 def get_geofence_variables(gflog_raw_data, gflog_callsigns, callsign):
     # Determube minimum geofence distance and violation
     min_dist_geofence = []
@@ -277,13 +349,13 @@ def get_geofence_conflict_variables(conflog_raw_data, conflog_callsigns, gflog_r
             dist_geo_min[i].append(min(distances_geo))
     return dist_geo_start, dist_geo_min
 
-def generate_reports(TS_list, RS_list, geo_list):
-    geo_idx = 0
+def generate_reports(TS_list, RS_list, geo_list, wind_list):
+    idx = 0
     for TS in TS_list:
         for RS in RS_list:
             print("Generate report TS" + str(TS) + " RS" + str(RS))
-            analyse_ruleset_in_testseries(TS, RS, geo_list[geo_idx], "output")
-        geo_idx += 1
+            analyse_ruleset_in_testseries(TS, RS, geo_list[idx], wind_list[idx], "output")
+        idx += 1
     return
 
 def report_IRPZ(TS_list, RS_list):
@@ -341,34 +413,4 @@ def report_VRG(TS_list, RS_list):
 
     return
 
-generate_reports([1,2,3,4], [1,2,3,4], [False, True, False, True])
-report_IRPZ([1,2,3,4], [1,2,3,4])
-report_IPR([1,2,3,4], [1,2,3,4])
-report_VRG([2,4], [1,2,3,4])
-#generate_reports([1,2,3,4], [1,2,3,4], [False, True, False, True])
-#analyse_ruleset_in_testseries(2, 3, True, 'output')
-
-#generate_performance_reports([0], [0])
-#t1, dist1, t_los1, dist_geo1_0, dist_geo1_1 = analyse_ruleset_in_testseries(1, 1, "output")
-
-#t1, dist1, t_los1, dist_geo1_0, dist_geo1_1 = analyse_ruleset_in_testseries(1, 1, "output")
-#t3, dist3, t_los3, dist_geo3_0, dist_geo3_1 = analyse_ruleset_in_testseries(1, 3, "output")
-
-#flat_dist1 = []
-#flat_indices1 = []
-#for i in range(len(dist1)):
-#    for j in range(len(dist1[i])):
-#        flat_dist1.append(dist1[i][j])
-#        flat_indices1.append(i)
-#
-#flat_dist3 = []
-#flat_indices3 = []
-#for i in range(len(dist3)):
-#    for j in range(len(dist3[i])):
-#        flat_dist3.append(dist3[i][j])
-#        flat_indices3.append(i)
-#
-#print(flat_indices1)
-#plt.scatter(flat_indices3, flat_dist3)
-#plt.scatter(flat_indices1, flat_dist1)
-#plt.show()
+generate_reports([1,2,3,4], [1,2,3,4], [False, True, False, True], [False, False, True, True])
