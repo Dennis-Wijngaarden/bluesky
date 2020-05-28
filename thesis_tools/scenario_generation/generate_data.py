@@ -8,8 +8,8 @@ import geofence_generator
 print('Generate traffic')
 traffic_generator.generate_traffic()
 
-print('Generate wind')
-wind_generator.generate_wind()
+#print('Generate wind')
+#wind_generator.generate_wind()
 
 print('Generate scenario')
 scenario_generator.generate_scenario()

@@ -1,4 +1,4 @@
-N_missions = 100        # Number of missions per test series
+N_missions = 10000        # Number of missions per test series
 N_vehicles = 2          # Number of vehicles per mission
 N_RS = 4                # Number of RuleSets
 N_TS = 4                # Number of test series
