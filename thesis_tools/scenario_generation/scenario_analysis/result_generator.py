@@ -11,7 +11,7 @@ import scipy as sp
 random.seed()
 
 # Some parameters
-sample_size = 100
+sample_size = 200
 
 # calculate IPR for each sample of a TS and RS
 def IPR_sample_calculator(TS, RS, sample_size):
@@ -128,7 +128,7 @@ def determine_wind_boundaries_for_plot():
     max_windspeed = max(windspeeds)
     return first_boundary, second_boundary_idx, max_windspeed
 
-def IPR_VPRG_wind_box_whiskerplot_creator():
+def IPR_VPRG_wind_box_whiskerplot_creator(þ):
     df_IPR = pd.read_csv("thesis_tools/results/performance/hypothesis2_ipr.csv")
     df_VPRG = pd.read_csv("thesis_tools/results/performance/hypothesis2_vprg.csv")
     df_IPR_TS3 = df_IPR[df_IPR['TS'] == 'TS3']
@@ -210,6 +210,25 @@ def hypothesis1_data_generator():
     df_VPRG = pd.DataFrame(data_VPRG, columns = ["TS", "RS", "value"])
     df_VPRG.to_csv("thesis_tools/results/performance/hypothesis1_vprg.csv")
 
+def Wilcoxon_hypothesis1():
+    # Load data
+    df_IPR = pd.read_csv("thesis_tools/results/performance/hypothesis1_ipr.csv")
+
+    # check for each ruleset if TS1 vs TS2 and TS3 VS TS4
+    p_data = []
+    for TS in [[1,2],[3,4]]:
+        for RS in np.arange(1,5):
+            data = [[],[]]
+            data[0] = df_IPR[df_IPR['TS'] == 'TS'  + str(TS[0])][df_IPR['RS'] == 'RS'  + str(RS)]["value"].tolist()
+            data[1] = df_IPR[df_IPR['TS'] == 'TS'  + str(TS[1])][df_IPR['RS'] == 'RS'  + str(RS)]["value"].tolist()
+            n = min(len(data[0]), len(data[1]))
+            data[0] = random.sample(data[0], n)
+            data[1] = random.sample(data[1], n)
+            T, p = sp.stats.wilcoxon(data[0], data[1], zero_method="zsplit")
+            p_data.append(['TS' + str(TS[0]), 'TS' + str(TS[1]), 'RS' + str(RS), 'IPR', n, p])
+    df = pd.DataFrame(p_data, columns = ["TS_0", "TS_1", "RS", "variable", "n", "p-value"])
+    df.to_csv("thesis_tools/results/pvalues/hypothesis1.csv")
+
 # hypothesis 2
 def hypothesis2_data_generator(first_slice, second_slice, sample_size):
     data_IPR = []
@@ -260,6 +279,40 @@ def hypothesis2_data_generator(first_slice, second_slice, sample_size):
 
     df_IPR.to_csv("thesis_tools/results/performance/hypothesis2_ipr.csv")
     df_VPRG.to_csv("thesis_tools/results/performance/hypothesis2_vprg.csv")
+
+def Wilcoxon_hypothesis2():
+    # Load data
+    df_IPR = pd.read_csv("thesis_tools/results/performance/hypothesis2_ipr.csv")
+    df_VPRG = pd.read_csv("thesis_tools/results/performance/hypothesis2_vprg.csv")
+
+    # check for each windspeed/ruleset combination TS3 and TS4
+    p_data = []
+    for TS in [3, 4]:
+        for RS in np.arange(1,5):
+            for wind in [["low", "medium"], ["medium", "strong"]]:
+                data = [[], []]
+                data[0] = df_IPR[df_IPR['TS'] == 'TS' + str(TS)][df_IPR['RS'] == 'RS' + str(RS)][df_IPR['wind'] == wind[0]]["IPR"].tolist()
+                data[1] = df_IPR[df_IPR['TS'] == 'TS' + str(TS)][df_IPR['RS'] == 'RS' + str(RS)][df_IPR['wind'] == wind[1]]["IPR"].tolist()
+                n = min(len(data[0]), len(data[1]))
+                data[0] = random.sample(data[0], n)
+                data[1] = random.sample(data[1], n)
+                T, p = sp.stats.wilcoxon(data[0], data[1], zero_method="zsplit")
+                p_data.append(['TS' + str(TS), 'RS' + str(RS), wind[0], wind[1],'IPR', n, p])
+
+    for TS in [4]:
+        for RS in np.arange(1,5):
+            for wind in [["low", "medium"], ["medium", "strong"]]:
+                data = [[], []]
+                data[0] = df_VPRG[df_VPRG['TS'] == 'TS' + str(TS)][df_VPRG['RS'] == 'RS' + str(RS)][df_VPRG['wind'] == wind[0]]["VPRG"].tolist()
+                data[1] = df_VPRG[df_VPRG['TS'] == 'TS' + str(TS)][df_VPRG['RS'] == 'RS' + str(RS)][df_VPRG['wind'] == wind[1]]["VPRG"].tolist()
+                n = min(len(data[0]), len(data[1]))
+                data[0] = random.sample(data[0], n)
+                data[1] = random.sample(data[1], n)
+                T, p = sp.stats.wilcoxon(data[0], data[1], zero_method="zsplit")
+                p_data.append(['TS' + str(TS), 'RS' + str(RS), wind[0], wind[1],'VPRG', n, p])
+
+    df = pd.DataFrame(p_data, columns = ["TS", "RS", "wind_0", "wind_1", "variable", "n", "p-value"])
+    df.to_csv("thesis_tools/results/pvalues/hypothesis2.csv")
 
 # hypothesis 3
 def hypothesis3_data_generator(first_slice, second_slice, sample_size):
@@ -327,14 +380,51 @@ def hypothesis3_data_generator(first_slice, second_slice, sample_size):
     df_IPR.to_csv("thesis_tools/results/performance/hypothesis3_ipr.csv")
     df_VPRG.to_csv("thesis_tools/results/performance/hypothesis3_vprg.csv")
 
+def Wilcoxon_hypothesis3():
+    # Load data
+    df_IPR = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr.csv")
+    df_VPRG = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg.csv")
 
-#hypothesis1_data_generator()
-#hypothesis2_data_generator(5, 10, sample_size)
-#hypothesis3_data_generator(150, 250, sample_size)
+    # check for each geofence distance/ruleset combination TS3 and TS4
+    p_data = []
+    for TS in [2, 4]:
+        for RS in np.arange(1,5):
+            for dist in [["small", "medium"], ["medium", "large"]]:
+                data = [[], []]
+                data[0] = df_IPR[df_IPR['TS'] == 'TS' + str(TS)][df_IPR['RS'] == 'RS' + str(RS)][df_IPR['gf_dist'] == dist[0]]["IPR"].tolist()
+                data[1] = df_IPR[df_IPR['TS'] == 'TS' + str(TS)][df_IPR['RS'] == 'RS' + str(RS)][df_IPR['gf_dist'] == dist[1]]["IPR"].tolist()
+                n = min(len(data[0]), len(data[1]))
+                data[0] = random.sample(data[0], n)
+                data[1] = random.sample(data[1], n)
+                T, p = sp.stats.wilcoxon(data[0], data[1], zero_method="zsplit")
+                p_data.append(['TS' + str(TS), 'RS' + str(RS), dist[0], dist[1],'IPR', n, p])
+
+    for TS in [4]:
+        for RS in np.arange(1,5):
+            for dist in [["small", "medium"], ["medium", "large"]]:
+                data = [[], []]
+                data[0] = df_VPRG[df_VPRG['TS'] == 'TS' + str(TS)][df_VPRG['RS'] == 'RS' + str(RS)][df_VPRG['gf_dist'] == dist[0]]["VPRG"].tolist()
+                data[1] = df_VPRG[df_VPRG['TS'] == 'TS' + str(TS)][df_VPRG['RS'] == 'RS' + str(RS)][df_VPRG['gf_dist'] == dist[1]]["VPRG"].tolist()
+                n = min(len(data[0]), len(data[1]))
+                data[0] = random.sample(data[0], n)
+                data[1] = random.sample(data[1], n)
+                T, p = sp.stats.wilcoxon(data[0], data[1], zero_method="zsplit")
+                p_data.append(['TS' + str(TS), 'RS' + str(RS), dist[0], dist[1],'VPRG', n, p])
+
+    df = pd.DataFrame(p_data, columns = ["TS", "RS", "dist_0", "dist_1", "variable", "n", "p-value"])
+    df.to_csv("thesis_tools/results/pvalues/hypothesis3.csv")
+
+hypothesis1_data_generator()
+hypothesis2_data_generator(5, 10, sample_size)
+hypothesis3_data_generator(150, 250, sample_size)
+
+Wilcoxon_hypothesis1()
+Wilcoxon_hypothesis2()
+Wilcoxon_hypothesis3()
 
 #IPR_box_whiskerplot_creator()
 #CVPRG_box_whiskerplot_creator()
 #print(determine_wind_boundaries_for_plot())
 #IPR_VPRG_wind_box_whiskerplot_creator()
 #print(determine_distance_boundaries_for_plot())
-IPR_VPRG_distance_box_whiskerplot_creator()
+#IPR_VPRG_distance_box_whiskerplot_creator()
