@@ -160,6 +160,7 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, wind_defined, invali
             conflict_line = {} # dictionary with conflict variable
             conflict_line['t_conflict'] = t_conflict[j]
             conflict_line['intrusion'] = int(min_dist_conflict[j] < R_pz)
+            conflict_line['scenario'] = valid_indices[i]
             if wind_defined:
                 conflict_line['windspeed'] = windspeed
             if geofence_defined:
@@ -185,7 +186,7 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, wind_defined, invali
             scenario_line['min_dist_gf1'] = min_dist_geofence1
             scenario_line['gf_violated0'] = int(min_dist_geofence0 < 0)
             scenario_line['gf_violated1'] = int(min_dist_geofence1 < 0)
-            scenario_report.append(scenario_line)
+        scenario_report.append(scenario_line)
         
 
     location = "thesis_tools/results/reports"
@@ -390,7 +391,7 @@ if __name__ == '__main__':
     invalid_indices.sort()
 
     TS_list = [1,2,3,4]
-    RS_list = [1,2,3,4]
+    RS_list = [1,2,3]
     geo_list = [False, True, False, True]
     wind_list = [False, False, True, True]
 

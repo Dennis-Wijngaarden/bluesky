@@ -1,0 +1,16 @@
+N_missions = 10000        # Number of missions per test series
+N_vehicles = 2          # Number of vehicles per mission
+N_RS = 4                # Number of RuleSets
+N_TS = 4                # Number of test series
+t_extra = 5.            # Time on top of the lookaheadtime [s]
+t_la = 25.              # Lookaheadtime [s]
+t_mission = 180.        # time of a mission run
+t_leg_min = 30.         # minimum time a vehicle has to fly on a leg
+t_leg_max = 60.         # maximum time a vehicle has to fly on a leg
+ref_position = "EHVB"   # Reference position
+ref_alt = 1000.         # Reference altitude [ft]
+min_vel_RC = 5.         # minimum initial speed for Rotorcraft
+R_PZ = 50.              # Radius od protected zone [m]
+max_gf_dist = 50.       # Margin with respect to geofence for geofence generation [m]
+gf_margin_dist = 100.   # Margin of inital GF segemnt for scenario generation [m]
+max_bank_angle = 30.    # Maximum bank angle [deg]

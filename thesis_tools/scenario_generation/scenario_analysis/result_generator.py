@@ -84,25 +84,24 @@ def CVPRG_sample_calculator(TS, RS, sample_size):
 
 def IPR_box_whiskerplot_creator():
     df = pd.read_csv("thesis_tools/results/performance/hypothesis1_ipr.csv")
-    sns.boxplot(x='TS',y='value', hue="RS", data=df)
-    plt.show()
-    return
-
-def SVPRG_box_whiskerplot_creator():
-    data = []
-    for i in [2, 4]:
-        for j in np.arange(1,5):
-            SVPRGs = SVPRG_sample_calculator(i, j, sample_size)
-            for k in range(len(SVPRGs)):
-                data.append(['TS' + str(i), 'RS' + str(j), SVPRGs[k]])
-    df = pd.DataFrame(data, columns = ["TS", "RS", "value"])
-    sns.boxplot(x='TS',y='value', hue="RS", data=df)
+    df['TS'] = df['TS'].map({'TS1': 'no geofence\nno wind', 'TS2': 'geofence\nno wind', 'TS3': 'no geofence\nwind', 'TS4': 'geofence\nwind'})
+    df['RS'] = df['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+    sns.boxplot(x='TS',y='IPR', hue="RS", data=df, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.85)
+    plt.legend(ncol=3)
+    plt.subplots_adjust(bottom=0.15)
     plt.show()
     return
 
 def CVPRG_box_whiskerplot_creator():
     df = pd.read_csv("thesis_tools/results/performance/hypothesis1_vprg.csv")
-    sns.boxplot(x='TS',y='value', hue="RS", data=df)
+    df['TS'] = df['TS'].map({'TS2': 'no wind', 'TS4': 'wind'})
+    df['RS'] = df['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+    sns.boxplot(x='TS',y='VPRG', hue="RS", data=df, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.85)
+    plt.legend(ncol=3)
     plt.show()
     return
 
@@ -128,17 +127,28 @@ def determine_wind_boundaries_for_plot():
     max_windspeed = max(windspeeds)
     return first_boundary, second_boundary_idx, max_windspeed
 
-def IPR_VPRG_wind_box_whiskerplot_creator(þ):
+def IPR_VPRG_wind_box_whiskerplot_creator():
     df_IPR = pd.read_csv("thesis_tools/results/performance/hypothesis2_ipr.csv")
     df_VPRG = pd.read_csv("thesis_tools/results/performance/hypothesis2_vprg.csv")
+    df_IPR['RS'] = df_IPR['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+    df_VPRG['RS'] = df_VPRG['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
     df_IPR_TS3 = df_IPR[df_IPR['TS'] == 'TS3']
     df_IPR_TS4 = df_IPR[df_IPR['TS'] == 'TS4']
     plt.figure()
-    sns.boxplot(x='RS',y='IPR', hue="wind", data=df_IPR_TS3)
+    sns.boxplot(x='RS',y='IPR', hue="wind", data=df_IPR_TS3, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.85)
+    plt.legend(ncol=3)
     plt.figure()
-    sns.boxplot(x='RS',y='IPR', hue="wind", data=df_IPR_TS4)
+    sns.boxplot(x='RS',y='IPR', hue="wind", data=df_IPR_TS4, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.85)
+    plt.legend(ncol=3)
     plt.figure()
-    sns.boxplot(x='RS',y='VPRG', hue="wind", data=df_VPRG)
+    sns.boxplot(x='RS',y='VPRG', hue="wind", data=df_VPRG, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.85)
+    plt.legend(ncol=3)
     plt.show()
 
     return
@@ -170,18 +180,32 @@ def determine_distance_boundaries_for_plot():
 def IPR_VPRG_distance_box_whiskerplot_creator():
     df_IPR = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr.csv")
     df_VPRG = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg.csv")
+    df_IPR['RS'] = df_IPR['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+    df_VPRG['RS'] = df_VPRG['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
     df_IPR_TS2 = df_IPR[df_IPR['TS'] == 'TS2']
     df_IPR_TS4 = df_IPR[df_IPR['TS'] == 'TS4']
     df_VPRG_TS2 = df_VPRG[df_VPRG['TS'] == 'TS2']
     df_VPRG_TS4 = df_VPRG[df_VPRG['TS'] == 'TS4']
     plt.figure()
-    sns.boxplot(x='RS',y='IPR', hue="gf_dist", data=df_IPR_TS2)
+    sns.boxplot(x='RS',y='IPR', hue="gf_dist", data=df_IPR_TS2,palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.85)
+    plt.legend(ncol=3)
     plt.figure()
-    sns.boxplot(x='RS',y='IPR', hue="gf_dist", data=df_IPR_TS4)
+    sns.boxplot(x='RS',y='IPR', hue="gf_dist", data=df_IPR_TS4, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.85)
+    plt.legend(ncol=3)
     plt.figure()
-    sns.boxplot(x='RS',y='VPRG', hue="gf_dist", data=df_VPRG_TS2)
+    sns.boxplot(x='RS',y='VPRG', hue="gf_dist", data=df_VPRG_TS2, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.85)
+    plt.legend(ncol=3)
     plt.figure()
-    sns.boxplot(x='RS',y='VPRG', hue="gf_dist", data=df_VPRG_TS4)
+    sns.boxplot(x='RS',y='VPRG', hue="gf_dist", data=df_VPRG_TS4, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.85)
+    plt.legend(ncol=3)
     plt.show()
 
     return
@@ -194,20 +218,20 @@ def IPR_VPRG_distance_box_whiskerplot_creator():
 def hypothesis1_data_generator():
     data_IPR = []
     for TS in np.arange(1,5):
-        for RS in np.arange(1,5):
+        for RS in np.arange(1,4):
             IPRs = IPR_sample_calculator(TS, RS, sample_size)
             for k in range(len(IPRs)):
                 data_IPR.append(['TS' + str(TS), 'RS' + str(RS), IPRs[k]])
-    df_IPR = pd.DataFrame(data_IPR, columns = ["TS", "RS", "value"])
+    df_IPR = pd.DataFrame(data_IPR, columns = ["TS", "RS", "IPR"])
     df_IPR.to_csv("thesis_tools/results/performance/hypothesis1_ipr.csv")
 
     data_VPRG = []
     for TS in [2, 4]:
-        for RS in np.arange(1,5):
+        for RS in np.arange(1,4):
             VPRGs = CVPRG_sample_calculator(TS, RS, sample_size)
             for k in range(len(VPRGs)):
                 data_VPRG.append(['TS' + str(TS), 'RS' + str(RS), VPRGs[k]])
-    df_VPRG = pd.DataFrame(data_VPRG, columns = ["TS", "RS", "value"])
+    df_VPRG = pd.DataFrame(data_VPRG, columns = ["TS", "RS", "VPRG"])
     df_VPRG.to_csv("thesis_tools/results/performance/hypothesis1_vprg.csv")
 
 def Wilcoxon_hypothesis1():
@@ -217,10 +241,10 @@ def Wilcoxon_hypothesis1():
     # check for each ruleset if TS1 vs TS2 and TS3 VS TS4
     p_data = []
     for TS in [[1,2],[3,4]]:
-        for RS in np.arange(1,5):
+        for RS in np.arange(1,4):
             data = [[],[]]
-            data[0] = df_IPR[df_IPR['TS'] == 'TS'  + str(TS[0])][df_IPR['RS'] == 'RS'  + str(RS)]["value"].tolist()
-            data[1] = df_IPR[df_IPR['TS'] == 'TS'  + str(TS[1])][df_IPR['RS'] == 'RS'  + str(RS)]["value"].tolist()
+            data[0] = df_IPR[df_IPR['TS'] == 'TS'  + str(TS[0])][df_IPR['RS'] == 'RS'  + str(RS)]["IPR"].tolist()
+            data[1] = df_IPR[df_IPR['TS'] == 'TS'  + str(TS[1])][df_IPR['RS'] == 'RS'  + str(RS)]["IPR"].tolist()
             n = min(len(data[0]), len(data[1]))
             data[0] = random.sample(data[0], n)
             data[1] = random.sample(data[1], n)
@@ -234,7 +258,7 @@ def hypothesis2_data_generator(first_slice, second_slice, sample_size):
     data_IPR = []
     data_VPRG = []
     for TS in [3, 4]:
-        for RS in np.arange(1,5):
+        for RS in np.arange(1,4):
             grouped_data = [[], [], []]
             conflict_report_json = open("thesis_tools/results/reports/conflict_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "r")
             conflict_data = json.load(conflict_report_json)
@@ -288,7 +312,7 @@ def Wilcoxon_hypothesis2():
     # check for each windspeed/ruleset combination TS3 and TS4
     p_data = []
     for TS in [3, 4]:
-        for RS in np.arange(1,5):
+        for RS in np.arange(1,4):
             for wind in [["low", "medium"], ["medium", "strong"]]:
                 data = [[], []]
                 data[0] = df_IPR[df_IPR['TS'] == 'TS' + str(TS)][df_IPR['RS'] == 'RS' + str(RS)][df_IPR['wind'] == wind[0]]["IPR"].tolist()
@@ -300,7 +324,7 @@ def Wilcoxon_hypothesis2():
                 p_data.append(['TS' + str(TS), 'RS' + str(RS), wind[0], wind[1],'IPR', n, p])
 
     for TS in [4]:
-        for RS in np.arange(1,5):
+        for RS in np.arange(1,4):
             for wind in [["low", "medium"], ["medium", "strong"]]:
                 data = [[], []]
                 data[0] = df_VPRG[df_VPRG['TS'] == 'TS' + str(TS)][df_VPRG['RS'] == 'RS' + str(RS)][df_VPRG['wind'] == wind[0]]["VPRG"].tolist()
@@ -319,7 +343,7 @@ def hypothesis3_data_generator(first_slice, second_slice, sample_size):
     data_IPR = []
     data_VPRG = []
     for TS in [2, 4]:
-        for RS in np.arange(1,5):
+        for RS in np.arange(1,4):
             grouped_data0 = [[], [], []]
             grouped_data1 = [[], [], []]
             conflict_report_json = open("thesis_tools/results/reports/conflict_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "r")
@@ -388,7 +412,7 @@ def Wilcoxon_hypothesis3():
     # check for each geofence distance/ruleset combination TS3 and TS4
     p_data = []
     for TS in [2, 4]:
-        for RS in np.arange(1,5):
+        for RS in np.arange(1,4):
             for dist in [["small", "medium"], ["medium", "large"]]:
                 data = [[], []]
                 data[0] = df_IPR[df_IPR['TS'] == 'TS' + str(TS)][df_IPR['RS'] == 'RS' + str(RS)][df_IPR['gf_dist'] == dist[0]]["IPR"].tolist()
@@ -400,7 +424,7 @@ def Wilcoxon_hypothesis3():
                 p_data.append(['TS' + str(TS), 'RS' + str(RS), dist[0], dist[1],'IPR', n, p])
 
     for TS in [4]:
-        for RS in np.arange(1,5):
+        for RS in np.arange(1,4):
             for dist in [["small", "medium"], ["medium", "large"]]:
                 data = [[], []]
                 data[0] = df_VPRG[df_VPRG['TS'] == 'TS' + str(TS)][df_VPRG['RS'] == 'RS' + str(RS)][df_VPRG['gf_dist'] == dist[0]]["VPRG"].tolist()
@@ -414,13 +438,13 @@ def Wilcoxon_hypothesis3():
     df = pd.DataFrame(p_data, columns = ["TS", "RS", "dist_0", "dist_1", "variable", "n", "p-value"])
     df.to_csv("thesis_tools/results/pvalues/hypothesis3.csv")
 
-hypothesis1_data_generator()
-hypothesis2_data_generator(5, 10, sample_size)
-hypothesis3_data_generator(150, 250, sample_size)
+#hypothesis1_data_generator()
+#hypothesis2_data_generator(5, 10, sample_size)
+#hypothesis3_data_generator(150, 250, sample_size)
 
-Wilcoxon_hypothesis1()
-Wilcoxon_hypothesis2()
-Wilcoxon_hypothesis3()
+#Wilcoxon_hypothesis1()
+#Wilcoxon_hypothesis2()
+#Wilcoxon_hypothesis3()
 
 #IPR_box_whiskerplot_creator()
 #CVPRG_box_whiskerplot_creator()
