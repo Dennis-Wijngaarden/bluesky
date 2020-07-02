@@ -4,6 +4,8 @@ from bluesky.traffic.asas import ConflictResolution
 from bluesky.tools import geo, areafilter
 from bluesky.tools.aero import nm, kts
 import numpy as np
+from shapely.geometry import Polygon
+from shapely.geometry import Point
 # Try to import pyclipper
 try:
     import pyclipper
@@ -27,6 +29,10 @@ def init_plugin():
     return config, {}
 
 class SSDUAV(ConflictResolution):
+    def __init__(self):
+        super().__init__()
+        self.cpa_invalid = np.array([], dtype=bool)
+
     def setprio(self, flag=None, priocode=''):
         '''Set the prio switch abd the type of prio '''
         if flag is None:
@@ -179,7 +185,7 @@ class SSDUAV(ConflictResolution):
         # Consider every aircraft
         for i in range(ntraf):
             # Calculate SSD only for aircraft in conflict (See formulas appendix)
-            if conf.inconf[i]:
+            if conf.inconf[i] or self.cpa_invalid[i]:
                 
                 vmin = ownship.perf.vmin[i]
                 vmax = ownship.perf.vmax[i]
@@ -458,7 +464,10 @@ class SSDUAV(ConflictResolution):
                                 # Scale VO to clipper
                                 VO = pyclipper.scale_to_clipper(xy_gf_tuple)
                                 # Add scaled VO to clipper
-                                pc.AddPath(VO, pyclipper.PT_CLIP, True)
+                                try:
+                                    pc.AddPath(VO, pyclipper.PT_CLIP, True)
+                                except:
+                                    pass
 
                     # Execute clipper command
                     FRV = pyclipper.scale_from_clipper(
@@ -526,7 +535,7 @@ class SSDUAV(ConflictResolution):
         # Loop through SSDs of all aircraft
         for i in range(ntraf):
             # Only those that are in conflict need to resolve
-            if conf.inconf[i] and ARV[i] is not None and len(ARV[i]) > 0:
+            if (conf.inconf[i] or self.cpa_invalid[i]) and ARV[i] is not None and len(ARV[i]) > 0:
                 # Loop through all exteriors and append. Afterwards concatenate
                 p = []
                 q = []
@@ -564,6 +573,180 @@ class SSDUAV(ConflictResolution):
             else:
                 conf.asase[i] = 0.
                 conf.asasn[i] = 0.
+
+    def check_cpa_in_geofence(self, idx1, idx2):
+        cpa_invalid = False
+
+        # Load geofence shape
+        geofence = areafilter.areas['GF']
+        # Loop through geofence coordinates
+        coordinates = np.reshape(geofence.coordinates, (int(len(geofence.coordinates) / 2), 2))
+        qdrs_gf = np.array([]) # [deg] in hdg CW
+        dists_gf = np.array([]) # [m]
+        for k in range(len(coordinates)):
+            # Calculate relative qdrs and distances of geofence points w.r.t. ownship
+            qdr_gf, dist_gf = geo.qdrdist(bs.traf.lat[idx1], bs.traf.lon[idx1], coordinates[k][0], coordinates[k][1])
+            qdrs_gf = np.append(qdrs_gf, qdr_gf)
+            dists_gf = np.append(dists_gf, dist_gf * nm)
+
+        qdrs_gf_rad = np.deg2rad(qdrs_gf)
+        xs_gf = dists_gf * np.sin(qdrs_gf_rad) # [m] East
+        ys_gf = dists_gf * np.cos(qdrs_gf_rad) # [m] North
+
+        
+        # Generate data for each geofence segment 0 to 1, 1 to 2, 2 to 3 ..... n to 0.
+        dxs_gf = np.array([])
+        dys_gf = np.array([])
+        for k in range(len(coordinates)):
+            x_from = xs_gf[k]
+            y_from = ys_gf[k]
+            # if last elament (needs to be connected to first element)
+            if k == (len(coordinates) - 1):
+                x_to = xs_gf[0]
+                y_to = ys_gf[0]
+            else:
+                x_to = xs_gf[k + 1]
+                y_to = ys_gf[k + 1]
+            
+            dxs_gf = np.append(dxs_gf, x_to - x_from)
+            dys_gf = np.append(dys_gf, y_to - y_from)
+
+        # calculate values (phis) of rotation of geofence segments
+        phis_gf = np.arctan2(dys_gf, dxs_gf)
+        x_hats_prime = np.transpose(np.array([np.cos(phis_gf), np.sin(phis_gf)]))
+        y_hats_prime = np.transpose(np.array([-np.sin(phis_gf), np.cos(phis_gf)]))
+
+        vmax = bs.traf.perf.vmax[idx1]
+        N_angle = 180 # [-] Number of points on circle discretization
+
+        # Determine relative distance vector w.r.t. intruder
+        qdr_int, dist_int = geo.qdrdist(bs.traf.lat[idx1], bs.traf.lon[idx1], bs.traf.lat[idx2], bs.traf.lon[idx2])
+        qdr_int_rad = np.deg2rad(qdr_int)
+        x_int = dist_int * nm * np.sin(qdr_int_rad)
+        y_int = dist_int * nm * np.cos(qdr_int_rad)
+        d_int = np.array([x_int, y_int])
+        trk_int = np.deg2rad(bs.traf.trk[idx2])
+        gs_int = bs.traf.gs[idx2]
+        v_int = np.array([gs_int * np.sin(trk_int), gs_int * np.cos(trk_int)])
+
+        v_int_dot_y_hats_prime = np.array([])
+        for k in range(len(y_hats_prime)):
+            v_int_dot_y_hats_prime = np.append(v_int_dot_y_hats_prime, np.dot(v_int, y_hats_prime[k]))
+        candidate_gf_segments = np.where(v_int_dot_y_hats_prime < 0)[0]
+
+        d_int_dot_x_hats_prime = np.array([])
+        d_int_dot_y_hats_prime = np.array([])
+
+        ds_geo = np.array([]) # [m] Array of distanced w.r.t. geofence of wonship
+        for k in candidate_gf_segments:
+            d_int_dot_x_hats_prime = np.append(d_int_dot_x_hats_prime, np.dot(d_int, x_hats_prime[k]))
+            d_int_dot_y_hats_prime = np.append(d_int_dot_y_hats_prime, np.dot(d_int, y_hats_prime[k]))
+
+            ds_geo = np.append(ds_geo, -np.dot(np.array([xs_gf[k], ys_gf[k]]), y_hats_prime[k]))
+        
+        phis_prime_gf = 0.5 * np.arctan2(-1. * d_int_dot_x_hats_prime, d_int_dot_y_hats_prime)
+
+        # Total rotation angle
+        phis_total_gf = phis_gf[candidate_gf_segments] + phis_prime_gf
+
+        # Secondary axis system primary axes
+        x_hats_2prime = np.transpose(np.array([np.cos(phis_total_gf), np.sin(phis_total_gf)]))
+        y_hats_2prime = np.transpose(np.array([-np.sin(phis_total_gf), np.cos(phis_total_gf)]))
+        
+        # Arrays of dot products
+        d_int_dot_x_hats_2prime = np.array([])
+        d_int_dot_y_hats_2prime = np.array([])
+        v_int_dot_x_hats_2prime = np.array([])
+        v_int_dot_y_hats_2prime = np.array([])
+        d_int_dot_v_int = np.array([])
+
+        for k in range(len(x_hats_2prime)):
+            d_int_dot_x_hats_2prime = np.append(d_int_dot_x_hats_2prime, np.dot(d_int, x_hats_2prime[k]))
+            d_int_dot_y_hats_2prime = np.append(d_int_dot_y_hats_2prime, np.dot(d_int, y_hats_2prime[k]))
+
+            v_int_dot_x_hats_2prime = np.append(v_int_dot_x_hats_2prime, np.dot(v_int, x_hats_2prime[k]))
+            v_int_dot_y_hats_2prime = np.append(v_int_dot_y_hats_2prime, np.dot(v_int, y_hats_2prime[k]))
+
+            d_int_dot_v_int = np.append(d_int_dot_v_int, np.dot(d_int, v_int))
+
+        # Constants needed to compute geometry of geofence VO's
+        C1s = 1. + np.sin(phis_prime_gf) * d_int_dot_x_hats_2prime / ds_geo
+        C2s = 1. + np.cos(phis_prime_gf) * d_int_dot_y_hats_2prime / ds_geo
+        C3s = -2. * v_int_dot_x_hats_2prime - np.sin(phis_prime_gf) * d_int_dot_v_int / ds_geo
+        C4s = -2. * v_int_dot_y_hats_2prime - np.cos(phis_prime_gf) * d_int_dot_v_int / ds_geo
+        
+        # Center points of geofence VO geometries in double rotated axis system
+        Cxs_2prime = - C3s / (2. * C1s)
+        Cys_2prime = - C4s / (2. * C2s)
+
+        # semi major axes squared (in case of ellipse)
+        a2s = (- gs_int**2 + C2s * Cys_2prime**2) / C1s + Cxs_2prime**2
+        b2s = (- gs_int**2 + C1s * Cxs_2prime**2) / C2s + Cys_2prime**2
+
+        # Loop trough a2s and b2s to construct VOs, categorize them 
+        for k in range(len(a2s)):
+            # if ownship outside gf segment TODO: UPDATE FOR OUTSIDE the geofence cases!!!!!
+            if (a2s[k] <= 0):
+                continue
+            # If Ellipse
+            elif (b2s[k] > 0):
+                ellipse_angles = np.linspace(0., 2. * np.pi, N_angle)
+                rotated_xs = np.sqrt(a2s[k]) * np.cos(ellipse_angles) + Cxs_2prime[k]
+                rotated_ys = np.sqrt(b2s[k]) * np.sin(ellipse_angles) + Cys_2prime[k]
+            # If hyperbola
+            else:
+                tmax = np.log((20. * vmax + np.sqrt(20.**2 * vmax**2 + a2s[k])) / np.sqrt(a2s[k]))
+                tmin = -tmax
+                if (phis_prime_gf[k] > 0):
+                    t = np.linspace(tmin, tmax, N_angle)
+                    rotated_xs = -np.sqrt(a2s[k]) * np.cosh(t) + Cxs_2prime[k]
+                else:
+                    t = np.linspace(tmax, tmin, N_angle)
+                    rotated_xs = np.sqrt(a2s[k]) * np.cosh(t) + Cxs_2prime[k]
+                rotated_ys = np.sqrt(-b2s[k]) * np.sinh(t) + Cys_2prime[k]
+            non_rotated_xs = rotated_xs * np.cos(phis_total_gf[k]) - rotated_ys * np.sin(phis_total_gf[k])
+            non_rotated_ys = rotated_xs * np.sin(phis_total_gf[k]) + rotated_ys * np.cos(phis_total_gf[k])
+
+            # Add non roted VO's to clipper
+            xy_gf = []
+            xy_gf.append(non_rotated_xs)
+            xy_gf.append(non_rotated_ys)
+            xy_gf = np.array(xy_gf)
+            xy_gf = np.transpose(xy_gf)
+            xy_gf_tuple = tuple(map(tuple, xy_gf))
+
+            VO_polygon = Polygon(xy_gf_tuple)
+            own_speed = Point((bs.traf.gseast[idx1], bs.traf.gsnorth[idx1]))
+            if (own_speed.within(VO_polygon)):
+                cpa_invalid = True
+                break
+
+        return cpa_invalid
+
+
+    def update(self, conf, ownship, intruder):
+        ''' Perform an update step of the Conflict Resolution implementation. '''
+
+        # check for each resopair if resolution is still within geofence
+        self.cpa_invalid = np.zeros(bs.traf.ntraf, dtype=bool)
+
+        geofence_defined = False
+        try:
+            areafilter.areas['GF']
+        except:
+            pass
+        else:
+            geofence_defined = True
+
+        if (geofence_defined):
+            for conflict in self.resopairs:
+                idx1, idx2 = bs.traf.id2idx(conflict)
+                self.cpa_invalid[idx1] = self.check_cpa_in_geofence(idx1, idx2)
+                
+
+        if conf.confpairs or self.resopairs:
+            self.trk, self.tas, self.vs, self.alt = self.resolve(conf, ownship, intruder)
+        self.resumenav(conf, ownship, intruder)
 
     def resumenav(self, conf, ownship, intruder):
         '''
