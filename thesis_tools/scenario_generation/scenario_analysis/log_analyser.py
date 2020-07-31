@@ -8,7 +8,7 @@ import warnings
 warnings.simplefilter("ignore", UserWarning)
 
 log_interval = 1.0 # [s]
-R_pz = 25.
+R_pz = 50.
 
 def analyse_reference(TS, path):
     # Read files in path folder
@@ -128,7 +128,6 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, wind_defined, invali
     for i in range(len(valid_indices)):
         # status print
         print("Analysing TS" + str(TS) + " RS" + str(RS) + " number: " + str(valid_indices[i]))
-
         fllog_raw_data = np.genfromtxt(path + '/FLLOGS/' + fllog_files[i], delimiter = ',', usecols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         fllog_callsigns = np.genfromtxt(path + '/FLLOGS/' + fllog_files[i], delimiter = ',', usecols = [1], dtype=str)
 
