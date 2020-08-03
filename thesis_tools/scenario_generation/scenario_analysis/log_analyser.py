@@ -185,6 +185,9 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, wind_defined, invali
             scenario_line['min_dist_gf1'] = min_dist_geofence1
             scenario_line['gf_violated0'] = int(min_dist_geofence0 < 0)
             scenario_line['gf_violated1'] = int(min_dist_geofence1 < 0)
+
+        if wind_defined:
+            scenario_line['windspeed'] = windspeed
         scenario_report.append(scenario_line)
         
 
@@ -386,7 +389,7 @@ def report_VRG(TS_list, RS_list):
 if __name__ == '__main__':
     invalid_indices0 = analyse_reference(0, "output")
     invalid_indices5 = analyse_reference(5, "output")
-    invalid_indices = list(set(invalid_indices0) | set(invalid_indices5))
+    invalid_indices = list(set(invalid_indices0) | set(invalid_indices5)) 
     invalid_indices.sort()
 
     TS_list = [1,2,3,4]
