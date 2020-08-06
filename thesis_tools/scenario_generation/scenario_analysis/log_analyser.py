@@ -151,8 +151,8 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, wind_defined, invali
             dist_geo_1, geo_violated1 = get_geo_variables_for_conflict(t_start_conflict, gflog_raw_data, gflog_callsigns, 'UAV1')
 
             # min distance encountered wrt the geofence
-            min_dist_geofence0, min_dist_geofence_time0 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV0')
-            min_dist_geofence1, min_dist_geofence_time1 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV1')
+            min_dist_geofence0, min_pos_dist_geofence0, min_dist_geofence_time0 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV0')
+            min_dist_geofence1, min_pos_dist_geofence1, min_dist_geofence_time1 = get_geofence_variables(gflog_raw_data, gflog_callsigns, 'UAV1')
 
         # write conflict report
         for j in range(len(t_start_conflict)):
@@ -183,6 +183,8 @@ def analyse_ruleset_in_testseries(TS, RS, geofence_defined, wind_defined, invali
         if geofence_defined:
             scenario_line['min_dist_gf0'] = min_dist_geofence0
             scenario_line['min_dist_gf1'] = min_dist_geofence1
+            scenario_line['min_pos_dist_gf0'] = min_pos_dist_geofence0
+            scenario_line['min_pos_dist_gf1'] = min_pos_dist_geofence1
             scenario_line['gf_violated0'] = int(min_dist_geofence0 < 0)
             scenario_line['gf_violated1'] = int(min_dist_geofence1 < 0)
 
@@ -303,9 +305,17 @@ def get_geofence_variables(gflog_raw_data, gflog_callsigns, callsign):
     rel_distances = np.array(gf_data)[:,1].tolist()
     min_dist_geofence = min(rel_distances)
 
+    if min_dist_geofence < 0:
+        for i in range(len(rel_distances)):
+            if rel_distances[i] < 0:
+                min_pos_dist_geofence = rel_distances[i - 1]
+                break
+    else:
+        min_pos_dist_geofence = min_dist_geofence
+
     min_dist_geofence_time = np.where(gf_data[:,1] == min_dist_geofence)[0][0]
     
-    return min_dist_geofence, min_dist_geofence_time
+    return min_dist_geofence, min_pos_dist_geofence, min_dist_geofence_time
 
 def get_geofence_conflict_variables(conflog_raw_data, conflog_callsigns, gflog_raw_data, gflog_callsigns, callsign):
     # distance wrt to geodence at start of conflict
