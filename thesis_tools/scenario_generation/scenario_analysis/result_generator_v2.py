@@ -232,9 +232,9 @@ def hypothesis1_VPRG_box_whiskerplot_creator():
 # Hypothesis 2: Effect of wind #
 ################################
 
-""" Only test series (2 and 4) with wind will be plotted for this hypothesis. 
+""" Only test series (3 and 4) with wind will be plotted for this hypothesis. 
     Wind will be subdivided in 3 categories (weak, medium, strong)
-    So 8 plots (with, without geofence) for VPRG_C, VPRG_S, IPR_C, IPR_S"""
+    So 4 plots (with, without geofence) for VPRG_C, VPRG_S, IPR_C, IPR_S"""
 
 def hypothesis2_data_generator(sample_size_conflicts, sample_size_scenarios, first_limit, second_limit):
     # Create empty data arrays
@@ -420,6 +420,231 @@ def hypothesis2_VPRG_box_whiskerpplot_creator():
 # Hypothesis 3: Effect of distance wrt geofence #
 #################################################
 
+""" Only test series (2 and 4) with geofences will be plotted for this hypothesis. 
+    Distance to geofence will be subdivided in 3 categories (weak, medium, strong)
+    So 4 plots (without geofence) for VPRG_C, VPRG_S, IPR_C, IPR_S"""
+
+def hypothesis3_data_generator(sample_size_conflicts, sample_size_scenarios, first_limit, second_limit):
+    # Create empty data arrays
+    data_IPR_C = []
+    data_IPR_S = []
+    data_VPRG_C = []
+    data_VPRG_S = []
+
+    TS_indices = [1,3]
+    for TS in np.array(TS_list)[TS_indices]:
+        for RS in RS_list:
+            # Load scenario data
+            scenario_report_json = open("thesis_tools/results/reports/scenario_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "r")
+            scenario_data = json.load(scenario_report_json)
+            scenario_report_json.close()
+
+            # Load conflict data
+            conflict_report_json = open("thesis_tools/results/reports/conflict_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "r")
+            conflict_data = json.load(conflict_report_json)
+            conflict_report_json.close()
+
+            # Number of scenarios and conflicts
+            n_scenarios = len(scenario_data)
+            n_conflicts = len(conflict_data)
+
+            # split conflict data dependent on dist to gf per UAV involved in each conflict
+            conflict_data_splitted = []
+
+            for i in range(n_conflicts):
+                conflict_gf0 = {'intrusion': conflict_data[i]['intrusion'],
+                                'violation': conflict_data[i]['violated_gf0'],
+                                'dist_gf': conflict_data[i]['dist_gf0']}
+
+                conflict_gf1 = {'intrusion': conflict_data[i]['intrusion'],
+                                'violation': conflict_data[i]['violated_gf1'],
+                                'dist_gf': conflict_data[i]['dist_gf1']}
+
+                conflict_data_splitted.append(conflict_gf0)
+                conflict_data_splitted.append(conflict_gf1)
+
+            # randomize order of splitted conflict data
+            conflict_data_randomised = conflict_data_splitted
+            random.shuffle(conflict_data_randomised)
+
+            # split scenario data dependen on dist to gf per UAV involved in each conflict
+            scenario_data_splitted = []
+
+            for i in range(n_scenarios):
+                scenario_gf0 = {'intrusion': scenario_data[i]['n_PZ_violated'] > 0,
+                                'violation': scenario_data[i]['gf_violated0'],
+                                'dist_gf': scenario_data[i]['min_pos_dist_gf0']}
+
+                scenario_gf1 = {'intrusion': scenario_data[i]['n_PZ_violated'] > 0,
+                                'violation': scenario_data[i]['gf_violated1'],
+                                'dist_gf': scenario_data[i]['min_pos_dist_gf1']}
+
+                scenario_data_splitted.append(scenario_gf0)
+                scenario_data_splitted.append(scenario_gf1)
+
+            # randomize order of splitted scenario data
+            scenario_data_randomised = scenario_data_splitted
+            random.shuffle(scenario_data_randomised)
+
+            # categorise conflict data by dist to geofence
+            conflict_data_categorised = [[], [], []]
+
+            for i in range(2 * n_conflicts):
+                # first filer out conflicts that are outside geofence:
+                if conflict_data_randomised[i]['dist_gf'] < 0:
+                    pass
+
+                if conflict_data_randomised[i]['dist_gf'] < first_limit:
+                    conflict_data_categorised[0].append(conflict_data_randomised[i])
+                elif conflict_data_randomised[i]['dist_gf'] < second_limit:
+                    conflict_data_categorised[1].append(conflict_data_randomised[i])
+                else:
+                    conflict_data_categorised[2].append(conflict_data_randomised[i])
+
+            # categorise scenario data by dist to geofence
+            scenario_data_categorised = [[], [], []]
+
+            for i in range(2 * n_scenarios):
+                if scenario_data_randomised[i]['dist_gf'] < first_limit:
+                    scenario_data_categorised[0].append(scenario_data_randomised[i])
+                elif scenario_data_randomised[i]['dist_gf'] < second_limit:
+                    scenario_data_categorised[1].append(scenario_data_randomised[i])
+                else:
+                    scenario_data_categorised[2].append(scenario_data_randomised[i])
+
+            # Analyse data on conflict base:
+            for i in range(3):
+                n_conflicts_category = len(conflict_data_categorised[i])
+                dist_category = ''
+                if i == 0:
+                    dist_category = 'small'
+                elif i == 1:
+                    dist_category = 'medium'
+                else:
+                    dist_category = 'large'
+                
+                for j in range(int(n_conflicts_category / sample_size_conflicts)):
+                    n_intrusions = 0
+                    n_violations = 0
+                    for k in range(sample_size_conflicts):
+                        idx_conflict = j * sample_size_conflicts + k
+                        n_intrusions += conflict_data_categorised[i][idx_conflict]['intrusion']
+                        n_violations += conflict_data_categorised[i][idx_conflict]['violation']
+                    IPR_C = (sample_size_conflicts - n_intrusions) / sample_size_conflicts
+                    data_IPR_C.append(['TS' + str(TS), 'RS' + str(RS), IPR_C, dist_category])
+                    VPRG_C = (sample_size_conflicts - n_violations) / (sample_size_conflicts)
+                    data_VPRG_C.append(['TS' + str(TS), 'RS' + str(RS), VPRG_C, dist_category])
+            
+            # Analyse data on scenario base:
+            for i in range(3):
+                n_scenarios_category = len(scenario_data_categorised[i])
+                dist_category = ''
+                if i == 0:
+                    dist_category = 'small'
+                elif i == 1:
+                    dist_category = 'medium'
+                else:
+                    dist_category = 'large'
+                
+                for j in range(int(n_scenarios_category / sample_size_scenarios)):
+                    n_intrusions = 0
+                    n_violations = 0
+                    for k in range(sample_size_scenarios):
+                        idx_scenario = j * sample_size_scenarios + k
+                        n_intrusions += scenario_data_categorised[i][idx_scenario]['intrusion']
+                        n_violations += scenario_data_categorised[i][idx_scenario]['violation']
+                    IPR_S = (sample_size_scenarios - n_intrusions) / sample_size_scenarios
+                    data_IPR_S.append(['TS' + str(TS), 'RS' + str(RS), IPR_S, dist_category])
+                    VPRG_S = (sample_size_scenarios - n_violations) / (sample_size_scenarios)
+                    data_VPRG_S.append(['TS' + str(TS), 'RS' + str(RS), VPRG_S, dist_category])
+    
+    # write dataframes to files
+    df_IPR_C = pd.DataFrame(data_IPR_C, columns = ['TS', 'RS', 'IPR_C', 'dist'])
+    df_IPR_S = pd.DataFrame(data_IPR_S, columns = ['TS', 'RS', 'IPR_S', 'dist'])
+    df_VPRG_C = pd.DataFrame(data_VPRG_C, columns = ['TS', 'RS', 'VPRG_C', 'dist'])
+    df_VPRG_S = pd.DataFrame(data_VPRG_S, columns = ['TS', 'RS', 'VPRG_S', 'dist'])
+
+    df_IPR_C.to_csv("thesis_tools/results/performance/hypothesis3_ipr_c.csv")
+    df_IPR_S.to_csv("thesis_tools/results/performance/hypothesis3_ipr_s.csv")
+    df_VPRG_C.to_csv("thesis_tools/results/performance/hypothesis3_vprg_c.csv")
+    df_VPRG_S.to_csv("thesis_tools/results/performance/hypothesis3_vprg_s.csv")
+
+def hypothesis3_IPR_box_whiskerplot_creator():
+    df_IPR_C = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr_c.csv")
+    df_IPR_S = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr_s.csv")
+
+    df_IPR_C['RS'] = df_IPR_C['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+    df_IPR_S['RS'] = df_IPR_S['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+
+    df_IPR_C_nowind = df_IPR_C[df_IPR_C['TS'] == 'TS2']
+    df_IPR_S_nowind = df_IPR_S[df_IPR_S['TS'] == 'TS2']
+    df_IPR_C_wind = df_IPR_C[df_IPR_C['TS'] == 'TS4']
+    df_IPR_S_wind = df_IPR_S[df_IPR_S['TS'] == 'TS4']
+
+    plt.figure()
+    sns.boxplot(x='RS',y='IPR_C', hue='dist', data=df_IPR_C_nowind, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.6)
+    plt.legend(ncol=3)
+    plt.subplots_adjust(bottom=0.15)
+    plt.figure()
+    sns.boxplot(x='RS',y='IPR_C', hue='dist', data=df_IPR_C_wind, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.6)
+    plt.legend(ncol=3)
+    plt.subplots_adjust(bottom=0.15)
+    plt.figure()
+    sns.boxplot(x='RS',y='IPR_S', hue='dist', data=df_IPR_S_nowind, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.6)
+    plt.legend(ncol=3)
+    plt.subplots_adjust(bottom=0.15)
+    plt.figure()
+    sns.boxplot(x='RS',y='IPR_S', hue='dist', data=df_IPR_S_wind, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.6)
+    plt.legend(ncol=3)
+    plt.subplots_adjust(bottom=0.15)
+    plt.show()
+
+def hypothesis3_VPRG_box_whiskerplot_creator():
+    df_VPRG_C = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg_c.csv")
+    df_VPRG_S = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg_S.csv")
+
+    df_VPRG_C['RS'] = df_VPRG_C['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+    df_VPRG_S['RS'] = df_VPRG_S['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+
+    df_VPRG_C_nowind = df_VPRG_C[df_VPRG_C['TS'] == 'TS2']
+    df_VPRG_S_nowind = df_VPRG_S[df_VPRG_S['TS'] == 'TS2']
+    df_VPRG_C_wind = df_VPRG_C[df_VPRG_C['TS'] == 'TS4']
+    df_VPRG_S_wind = df_VPRG_S[df_VPRG_S['TS'] == 'TS4']
+
+    plt.figure()
+    sns.boxplot(x='RS',y='VPRG_C', hue='dist', data=df_VPRG_C_nowind, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.6)
+    plt.legend(ncol=3)
+    plt.subplots_adjust(bottom=0.15)
+    plt.figure()
+    sns.boxplot(x='RS',y='VPRG_C', hue='dist', data=df_VPRG_C_wind, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.6)
+    plt.legend(ncol=3)
+    plt.subplots_adjust(bottom=0.15)
+    plt.figure()
+    sns.boxplot(x='RS',y='VPRG_S', hue='dist', data=df_VPRG_S_nowind, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.6)
+    plt.legend(ncol=3)
+    plt.subplots_adjust(bottom=0.15)
+    plt.figure()
+    sns.boxplot(x='RS',y='VPRG_S', hue='dist', data=df_VPRG_S_wind, palette="Greys")
+    plt.grid(axis='y')
+    plt.ylim(bottom=.6)
+    plt.legend(ncol=3)
+    plt.subplots_adjust(bottom=0.15)
+    plt.show()
+
 #print(create_scenario_statistics_df())
 #hypothesis1_data_generator(200, 200)
 #hypothesis1_IPR_box_whiskerplot_creator()
@@ -427,3 +652,6 @@ def hypothesis2_VPRG_box_whiskerpplot_creator():
 #hypothesis2_data_generator(200,200,5,15)
 #hypothesis2_IPR_box_whiskerpplot_creator()
 #hypothesis2_VPRG_box_whiskerpplot_creator()
+#hypothesis3_data_generator(200,200,100,150)
+#hypothesis3_IPR_box_whiskerplot_creator()
+#hypothesis3_VPRG_box_whiskerplot_creator()
