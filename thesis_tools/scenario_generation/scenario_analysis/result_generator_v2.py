@@ -99,6 +99,68 @@ def create_scenario_statistics_df():
     df = pd.DataFrame(data_dict)
     return df
 
+def scenario_dataframe_generator():
+    data = []
+
+    idx = 0
+    TS_scenario_data = [[],[],[],[]]
+    for TS in TS_list:
+
+        RS_scenario_data = [[],[],[]]
+        for i in range(len(RS_list)):
+            # Load scenario data
+            RS = RS_list[i]
+            scenario_report_json = open("thesis_tools/results/reports/scenario_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "r")
+            scenario_data = json.load(scenario_report_json)
+            scenario_report_json.close()
+
+            RS_scenario_data[i].append(scenario_data)
+        TS_scenario_data[idx].append(RS_scenario_data)
+        idx += 1
+
+    for i in range(len(TS_scenario_data[0][0][0][0])):
+        scenario_number = TS_scenario_data[0][0][0][0][i]['scenario']
+        wind = TS_scenario_data[2][0][0][0][i]['windspeed']
+
+        intrusion_1_1 = TS_scenario_data[0][0][0][0][i]['n_PZ_violated'] > 0
+        intrusion_1_2 = TS_scenario_data[0][0][1][0][i]['n_PZ_violated'] > 0
+        intrusion_1_3 = TS_scenario_data[0][0][2][0][i]['n_PZ_violated'] > 0
+
+        intrusion_2_1 = TS_scenario_data[1][0][0][0][i]['n_PZ_violated'] > 0
+        intrusion_2_2 = TS_scenario_data[1][0][1][0][i]['n_PZ_violated'] > 0
+        intrusion_2_3 = TS_scenario_data[1][0][2][0][i]['n_PZ_violated'] > 0
+
+        intrusion_3_1 = TS_scenario_data[2][0][0][0][i]['n_PZ_violated'] > 0
+        intrusion_3_2 = TS_scenario_data[2][0][1][0][i]['n_PZ_violated'] > 0
+        intrusion_3_3 = TS_scenario_data[2][0][2][0][i]['n_PZ_violated'] > 0
+
+        intrusion_4_1 = TS_scenario_data[3][0][0][0][i]['n_PZ_violated'] > 0
+        intrusion_4_2 = TS_scenario_data[3][0][1][0][i]['n_PZ_violated'] > 0
+        intrusion_4_3 = TS_scenario_data[3][0][2][0][i]['n_PZ_violated'] > 0
+
+        violation_2_1 = bool(TS_scenario_data[1][0][0][0][i]['gf_violated0'] or TS_scenario_data[1][0][0][0][i]['gf_violated1'])
+        violation_2_2 = bool(TS_scenario_data[1][0][1][0][i]['gf_violated0'] or TS_scenario_data[1][0][1][0][i]['gf_violated1'])
+        violation_2_3 = bool(TS_scenario_data[1][0][2][0][i]['gf_violated0'] or TS_scenario_data[1][0][2][0][i]['gf_violated1'])
+
+        violation_4_1 = bool(TS_scenario_data[3][0][0][0][i]['gf_violated0'] or TS_scenario_data[3][0][0][0][i]['gf_violated1'])
+        violation_4_2 = bool(TS_scenario_data[3][0][1][0][i]['gf_violated0'] or TS_scenario_data[3][0][1][0][i]['gf_violated1'])
+        violation_4_3 = bool(TS_scenario_data[3][0][2][0][i]['gf_violated0'] or TS_scenario_data[3][0][2][0][i]['gf_violated1'])
+
+        data.append([scenario_number, wind, intrusion_1_1, intrusion_1_2, intrusion_1_3, \
+                                            intrusion_2_1, intrusion_2_2, intrusion_2_3, \
+                                            intrusion_3_1, intrusion_3_2, intrusion_3_3, \
+                                            intrusion_4_1, intrusion_4_2, intrusion_4_3, \
+                                            violation_2_1, violation_2_2, violation_2_3, \
+                                            violation_4_1, violation_4_2, violation_4_3])
+
+    data_df = pd.DataFrame(data, columns = ['scen number', 'wind',  'intrusion_1_1', 'intrusion_1_2', 'intrusion_1_3', \
+                                                                    'intrusion_2_1', 'intrusion_2_2', 'intrusion_2_3', \
+                                                                    'intrusion_3_1', 'intrusion_3_2', 'intrusion_3_3', \
+                                                                    'intrusion_4_1', 'intrusion_4_2', 'intrusion_4_3', \
+                                                                    'violation_2_1', 'violation_2_2', 'violation_2_3', \
+                                                                    'violation_4_1', 'violation_4_2', 'violation_4_3'])
+    data_df.to_csv("thesis_tools/results/reports/scenario_df.csv")
+
 #######################################################
 # Hypothesis 1: Effect of implementation of geofences #
 #######################################################
@@ -108,6 +170,8 @@ def hypothesis1_data_generator(sample_size_conflicts, sample_size_scenarios):
     data_IPR_S = []
     data_VPRG_C = []
     data_VPRG_S = []
+
+    data_info = []
 
     idx = 0
     for TS in TS_list:
@@ -150,6 +214,7 @@ def hypothesis1_data_generator(sample_size_conflicts, sample_size_scenarios):
                 if (GF_defined):
                     VPRG_C = (2. * sample_size_conflicts - n_violations) / (2. * sample_size_conflicts)
                     data_VPRG_C.append(['TS' + str(TS), 'RS' + str(RS), VPRG_C])
+            data_info.append(['TS' + str(TS), 'RS' + str(RS), 'C', sample_size_conflicts, int(n_conflicts / sample_size_conflicts)])
 
             # Analyse data on scenario base
             for i in range(int(n_scenarios / sample_size_scenarios)):
@@ -166,6 +231,7 @@ def hypothesis1_data_generator(sample_size_conflicts, sample_size_scenarios):
                 if (GF_defined):
                     VPRG_S = (2. * sample_size_scenarios - n_violations) / (2. * sample_size_scenarios)
                     data_VPRG_S.append(['TS' + str(TS), 'RS' + str(RS), VPRG_S])
+            data_info.append(['TS' + str(TS), 'RS' + str(RS), 'S', sample_size_scenarios, int(n_scenarios / sample_size_scenarios)])
         idx += 1
     
     # write dataframes to files
@@ -178,6 +244,11 @@ def hypothesis1_data_generator(sample_size_conflicts, sample_size_scenarios):
     df_IPR_S.to_csv("thesis_tools/results/performance/hypothesis1_ipr_s.csv")
     df_VPRG_C.to_csv("thesis_tools/results/performance/hypothesis1_vprg_c.csv")
     df_VPRG_S.to_csv("thesis_tools/results/performance/hypothesis1_vprg_s.csv")
+
+    # info dataframe
+
+    df_info = pd.DataFrame(data_info, columns = ['TS', 'RS', 'Type', 'Sample size', 'N samples'])
+    print(df_info)
 
 def hypothesis1_IPR_box_whiskerplot_creator():
     df_IPR_C = pd.read_csv("thesis_tools/results/performance/hypothesis1_ipr_c.csv")
@@ -242,6 +313,8 @@ def hypothesis2_data_generator(sample_size_conflicts, sample_size_scenarios, fir
     data_IPR_S = []
     data_VPRG_C = []
     data_VPRG_S = []
+
+    data_info = []
 
     TS_indices = [2,3]
     idx = 0
@@ -317,6 +390,7 @@ def hypothesis2_data_generator(sample_size_conflicts, sample_size_scenarios, fir
                     if (GF_defined):
                         VPRG_C = (2. * sample_size_conflicts - n_violations) / (2. * sample_size_conflicts)
                         data_VPRG_C.append(['TS' + str(TS), 'RS' + str(RS), VPRG_C, wind_category])
+                data_info.append(['TS' + str(TS), 'RS' + str(RS), 'C', wind_category, sample_size_conflicts, int(n_conflicts_category / sample_size_conflicts)])
 
             # Analyse data on scenario base:
             for i in range(3):
@@ -343,6 +417,7 @@ def hypothesis2_data_generator(sample_size_conflicts, sample_size_scenarios, fir
                     if (GF_defined):
                         VPRG_S = (2. * sample_size_scenarios - n_violations) / (2. * sample_size_scenarios)
                         data_VPRG_S.append(['TS' + str(TS), 'RS' + str(RS), VPRG_S, wind_category])
+                data_info.append(['TS' + str(TS), 'RS' + str(RS), 'S', wind_category, sample_size_scenarios, int(n_scenarios_category / sample_size_scenarios)])
         idx += 1
 
     # write dataframes to files
@@ -355,6 +430,39 @@ def hypothesis2_data_generator(sample_size_conflicts, sample_size_scenarios, fir
     df_IPR_S.to_csv("thesis_tools/results/performance/hypothesis2_ipr_s.csv")
     df_VPRG_C.to_csv("thesis_tools/results/performance/hypothesis2_vprg_c.csv")
     df_VPRG_S.to_csv("thesis_tools/results/performance/hypothesis2_vprg_s.csv")
+
+    # info dataframe
+
+    df_info = pd.DataFrame(data_info, columns = ['TS', 'RS', 'Type', 'wind', 'Sample size', 'N samples'])
+    print(df_info)
+
+def hypothesis2_scenario_dataframe_generator():
+    data = []
+
+    TS_indices = [2,3]
+    idx = 0
+    for TS in np.array(TS_list)[TS_indices]:
+        GF_defined = np.array(GF_list)[TS_indices[idx]]
+        for RS in RS_list:
+            # Load scenario data
+            scenario_report_json = open("thesis_tools/results/reports/scenario_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "r")
+            scenario_data = json.load(scenario_report_json)
+            scenario_report_json.close()
+
+            for i in range(len(scenario_data)):
+                scenario_number = scenario_data[i]['scenario']
+                scenario_wind = scenario_data[i]['windspeed']
+                scenario_intrusion = scenario_data[i]['n_PZ_violated'] > 0
+                if GF_defined:
+                    scenario_violation = scenario_data[i]['gf_violated0'] or scenario_data[i]['gf_violated1']
+                else:
+                    scenario_violation = np.nan
+                data.append([scenario_number, 'TS' + str(TS), 'RS' + str(RS), scenario_wind, scenario_intrusion, scenario_violation])
+        
+        idx += 1
+
+    data_df = pd.DataFrame(data, columns = ['scen number', 'TS', 'RS', 'wind', 'intrusion', 'violation'])
+    data_df.to_csv("thesis_tools/results/reports/hypothesis2_scenario_df.csv")
 
 def hypothesis2_IPR_box_whiskerpplot_creator():
     df_IPR_C = pd.read_csv("thesis_tools/results/performance/hypothesis2_ipr_c.csv")
@@ -430,6 +538,8 @@ def hypothesis3_data_generator(sample_size_conflicts, sample_size_scenarios, fir
     data_IPR_S = []
     data_VPRG_C = []
     data_VPRG_S = []
+
+    data_info = []
 
     TS_indices = [1,3]
     for TS in np.array(TS_list)[TS_indices]:
@@ -534,7 +644,8 @@ def hypothesis3_data_generator(sample_size_conflicts, sample_size_scenarios, fir
                     data_IPR_C.append(['TS' + str(TS), 'RS' + str(RS), IPR_C, dist_category])
                     VPRG_C = (sample_size_conflicts - n_violations) / (sample_size_conflicts)
                     data_VPRG_C.append(['TS' + str(TS), 'RS' + str(RS), VPRG_C, dist_category])
-            
+                data_info.append(['TS' + str(TS), 'RS' + str(RS), 'C', dist_category, sample_size_conflicts, int(n_conflicts_category / sample_size_conflicts)])
+
             # Analyse data on scenario base:
             for i in range(3):
                 n_scenarios_category = len(scenario_data_categorised[i])
@@ -557,7 +668,8 @@ def hypothesis3_data_generator(sample_size_conflicts, sample_size_scenarios, fir
                     data_IPR_S.append(['TS' + str(TS), 'RS' + str(RS), IPR_S, dist_category])
                     VPRG_S = (sample_size_scenarios - n_violations) / (sample_size_scenarios)
                     data_VPRG_S.append(['TS' + str(TS), 'RS' + str(RS), VPRG_S, dist_category])
-    
+                data_info.append(['TS' + str(TS), 'RS' + str(RS), 'S', dist_category, sample_size_scenarios, int(n_scenarios_category / sample_size_scenarios)])
+
     # write dataframes to files
     df_IPR_C = pd.DataFrame(data_IPR_C, columns = ['TS', 'RS', 'IPR_C', 'dist'])
     df_IPR_S = pd.DataFrame(data_IPR_S, columns = ['TS', 'RS', 'IPR_S', 'dist'])
@@ -568,6 +680,11 @@ def hypothesis3_data_generator(sample_size_conflicts, sample_size_scenarios, fir
     df_IPR_S.to_csv("thesis_tools/results/performance/hypothesis3_ipr_s.csv")
     df_VPRG_C.to_csv("thesis_tools/results/performance/hypothesis3_vprg_c.csv")
     df_VPRG_S.to_csv("thesis_tools/results/performance/hypothesis3_vprg_s.csv")
+
+    # info dataframe
+
+    df_info = pd.DataFrame(data_info, columns = ['TS', 'RS', 'Type', 'dist', 'Sample size', 'N samples'])
+    print(df_info)
 
 def hypothesis3_IPR_box_whiskerplot_creator():
     df_IPR_C = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr_c.csv")
@@ -585,24 +702,28 @@ def hypothesis3_IPR_box_whiskerplot_creator():
     sns.boxplot(x='RS',y='IPR_C', hue='dist', data=df_IPR_C_nowind, palette="Greys")
     plt.grid(axis='y')
     plt.ylim(bottom=.6)
+    plt.ylim(top=1.)
     plt.legend(ncol=3)
     plt.subplots_adjust(bottom=0.15)
     plt.figure()
     sns.boxplot(x='RS',y='IPR_C', hue='dist', data=df_IPR_C_wind, palette="Greys")
     plt.grid(axis='y')
     plt.ylim(bottom=.6)
+    plt.ylim(top=1.)
     plt.legend(ncol=3)
     plt.subplots_adjust(bottom=0.15)
     plt.figure()
     sns.boxplot(x='RS',y='IPR_S', hue='dist', data=df_IPR_S_nowind, palette="Greys")
     plt.grid(axis='y')
     plt.ylim(bottom=.6)
+    plt.ylim(top=1.)
     plt.legend(ncol=3)
     plt.subplots_adjust(bottom=0.15)
     plt.figure()
     sns.boxplot(x='RS',y='IPR_S', hue='dist', data=df_IPR_S_wind, palette="Greys")
     plt.grid(axis='y')
     plt.ylim(bottom=.6)
+    plt.ylim(top=1.)
     plt.legend(ncol=3)
     plt.subplots_adjust(bottom=0.15)
     plt.show()
@@ -645,13 +766,15 @@ def hypothesis3_VPRG_box_whiskerplot_creator():
     plt.subplots_adjust(bottom=0.15)
     plt.show()
 
+scenario_dataframe_generator()
 #print(create_scenario_statistics_df())
 #hypothesis1_data_generator(200, 200)
 #hypothesis1_IPR_box_whiskerplot_creator()
 #hypothesis1_VPRG_box_whiskerplot_creator()
-#hypothesis2_data_generator(200,200,5,15)
+#hypothesis2_data_generator(200,200,5,10)
+#hypothesis2_scenario_dataframe_generator()
 #hypothesis2_IPR_box_whiskerpplot_creator()
 #hypothesis2_VPRG_box_whiskerpplot_creator()
-#hypothesis3_data_generator(200,200,100,150)
+#hypothesis3_data_generator(200,200,50,125)
 #hypothesis3_IPR_box_whiskerplot_creator()
 #hypothesis3_VPRG_box_whiskerplot_creator()

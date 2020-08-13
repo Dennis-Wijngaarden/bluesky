@@ -113,7 +113,7 @@ def determine_wind_boundaries_for_plot():
     # check windspeeds in conflict files
     windspeeds = []
     for TS in [3, 4]:
-        for RS in np.arange(1,5):
+        for RS in np.arange(1,4):
             conflict_report_json = open("thesis_tools/results/reports/conflict_report_TS" + str(TS) + "_RS" + str(RS) + ".json", "r")
             conflict_data = json.load(conflict_report_json)
             conflict_report_json.close()
@@ -207,6 +207,8 @@ def IPR_VPRG_distance_box_whiskerplot_creator():
     plt.ylim(bottom=.85)
     plt.legend(ncol=3)
     plt.show()
+
+    print(df_IPR)
 
     return
 
@@ -451,4 +453,4 @@ def Wilcoxon_hypothesis3():
 #print(determine_wind_boundaries_for_plot())
 #IPR_VPRG_wind_box_whiskerplot_creator()
 #print(determine_distance_boundaries_for_plot())
-#IPR_VPRG_distance_box_whiskerplot_creator()
+IPR_VPRG_distance_box_whiskerplot_creator()
