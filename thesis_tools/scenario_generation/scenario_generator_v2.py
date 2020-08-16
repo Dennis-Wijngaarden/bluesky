@@ -151,6 +151,18 @@ def generate_scenario():
         data_entry['trk1'] = trk1
         data_entry['hdg1_wind'] = trk_to_hdg(np.deg2rad(trk1), spd1, wind_speed, wind_direction)
         data_entry['dist_cpa'] = d_cpa
+        data_entry['start_pos0_nowind'] = np.array([start_pos0_nowind[0][0], start_pos0_nowind[1][0]])
+        data_entry['start_pos1_nowind'] = np.array([start_pos1_nowind[0][0], start_pos1_nowind[1][0]])
+        data_entry['start_qdr0_nowind'] = np.rad2deg(np.arctan2(start_pos0_nowind[0][0], start_pos0_nowind[1][0]))
+        data_entry['start_qdr1_nowind'] = np.rad2deg(np.arctan2(start_pos1_nowind[0][0], start_pos1_nowind[1][0]))
+        data_entry['start_dist0_nowind'] = np.sqrt(start_pos0_nowind[0][0]**2 + start_pos0_nowind[1][0]**2)
+        data_entry['start_dist1_nowind'] = np.sqrt(start_pos1_nowind[0][0]**2 + start_pos1_nowind[1][0]**2)
+        data_entry['start_pos0_wind'] = np.array([start_pos0_wind[0][0], start_pos0_wind[1][0]])
+        data_entry['start_pos1_wind'] = np.array([start_pos1_wind[0][0], start_pos1_wind[1][0]])
+        data_entry['start_qdr0_wind'] = np.rad2deg(np.arctan2(start_pos0_wind[0][0], start_pos0_wind[1][0]))
+        data_entry['start_qdr1_wind'] = np.rad2deg(np.arctan2(start_pos1_wind[0][0], start_pos1_wind[1][0]))
+        data_entry['start_dist0_wind'] = np.sqrt(start_pos0_wind[0][0]**2 + start_pos0_wind[1][0]**2)
+        data_entry['start_dist1_wind'] = np.sqrt(start_pos1_wind[0][0]**2 + start_pos1_wind[1][0]**2)
         scenario_data.append(data_entry)
 
         wind_entry['speed'] = wind_speed
