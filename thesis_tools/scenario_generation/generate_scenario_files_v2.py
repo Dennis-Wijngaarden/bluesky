@@ -131,10 +131,10 @@ for i in range(parameters.N_missions):
 
     # Write scenario files
     # create first UAV in scenario for wind calm series
-    start_lat0_nowind, start_lon0_nowind = geo.qdrpos(lat_ref, lon_ref, scenario_data[i]['start_qdr0_nowind'], scenario_data[i]['start_dist0_nowind'])
-    start_lat1_nowind, start_lon1_nowind = geo.qdrpos(lat_ref, lon_ref, scenario_data[i]['start_qdr1_nowind'], scenario_data[i]['start_dist1_nowind'])
-    start_lat0_wind, start_lon0_wind = geo.qdrpos(lat_ref, lon_ref, scenario_data[i]['start_qdr0_wind'], scenario_data[i]['start_dist0_wind'])
-    start_lat1_wind, start_lon1_wind = geo.qdrpos(lat_ref, lon_ref, scenario_data[i]['start_qdr1_wind'], scenario_data[i]['start_dist1_wind'])
+    start_lat0_nowind, start_lon0_nowind = geo.qdrpos(lat_ref, lon_ref, scenario_data[i]['start_qdr0_nowind'], scenario_data[i]['start_dist0_nowind']  / nm)
+    start_lat1_nowind, start_lon1_nowind = geo.qdrpos(lat_ref, lon_ref, scenario_data[i]['start_qdr1_nowind'], scenario_data[i]['start_dist1_nowind'] / nm)
+    start_lat0_wind, start_lon0_wind = geo.qdrpos(lat_ref, lon_ref, scenario_data[i]['start_qdr0_wind'], scenario_data[i]['start_dist0_wind'] / nm)
+    start_lat1_wind, start_lon1_wind = geo.qdrpos(lat_ref, lon_ref, scenario_data[i]['start_qdr1_wind'], scenario_data[i]['start_dist1_wind'] / nm)
 
     cre_line_wind_calm = "00:00:00.00>CRE UAV0 UAV_" + str(i) + "_0 " + str(start_lat0_nowind) + " " + str(start_lon0_nowind) + " " + str(scenario_data[i]['trk0']) + " " +\
             str(parameters.ref_alt) + " " + str(scenario_data[i]['spd0'] / kts) + "\n"
