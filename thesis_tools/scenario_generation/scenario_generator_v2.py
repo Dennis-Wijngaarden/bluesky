@@ -92,15 +92,15 @@ def generate_scenario():
             # Generate random variables for UAV0 and UAV1
             spd0 = None
             if (aircraft_data[i][0]['type'] == 'RC'):
-                spd0 = random.uniform(parameters.min_vel_RC, aircraft_data[i][0]['v_max'])
+                spd0 = random.uniform(max(parameters.min_vel_RC, wind_speed), aircraft_data[i][0]['v_max'])
             else:
-                spd0 = random.uniform(aircraft_data[i][0]['v_min'], aircraft_data[i][0]['v_max'])
+                spd0 = random.uniform(max(aircraft_data[i][0]['v_min'], wind_speed), aircraft_data[i][0]['v_max'])
             
             spd1 = None
             if (aircraft_data[i][1]['type'] == 'RC'):
-                spd1 = random.uniform(parameters.min_vel_RC, aircraft_data[i][1]['v_max'])
+                spd1 = random.uniform(max(parameters.min_vel_RC, wind_speed), aircraft_data[i][1]['v_max'])
             else:
-                spd1 = random.uniform(aircraft_data[i][1]['v_min'], aircraft_data[i][1]['v_max'])
+                spd1 = random.uniform(max(aircraft_data[i][1]['v_min'], wind_speed), aircraft_data[i][1]['v_max'])
 
             # Define side of fiest geofence segment w.r.t. UAV0
             gf0_side = random.choice(["Left", "Right"])
@@ -151,14 +151,14 @@ def generate_scenario():
         data_entry['trk1'] = trk1
         data_entry['hdg1_wind'] = trk_to_hdg(np.deg2rad(trk1), spd1, wind_speed, wind_direction)
         data_entry['dist_cpa'] = d_cpa
-        data_entry['start_pos0_nowind'] = np.array([start_pos0_nowind[0][0], start_pos0_nowind[1][0]])
-        data_entry['start_pos1_nowind'] = np.array([start_pos1_nowind[0][0], start_pos1_nowind[1][0]])
+        data_entry['start_pos0_nowind'] = [start_pos0_nowind[0][0], start_pos0_nowind[1][0]]
+        data_entry['start_pos1_nowind'] = [start_pos1_nowind[0][0], start_pos1_nowind[1][0]]
         data_entry['start_qdr0_nowind'] = np.rad2deg(np.arctan2(start_pos0_nowind[0][0], start_pos0_nowind[1][0]))
         data_entry['start_qdr1_nowind'] = np.rad2deg(np.arctan2(start_pos1_nowind[0][0], start_pos1_nowind[1][0]))
         data_entry['start_dist0_nowind'] = np.sqrt(start_pos0_nowind[0][0]**2 + start_pos0_nowind[1][0]**2)
         data_entry['start_dist1_nowind'] = np.sqrt(start_pos1_nowind[0][0]**2 + start_pos1_nowind[1][0]**2)
-        data_entry['start_pos0_wind'] = np.array([start_pos0_wind[0][0], start_pos0_wind[1][0]])
-        data_entry['start_pos1_wind'] = np.array([start_pos1_wind[0][0], start_pos1_wind[1][0]])
+        data_entry['start_pos0_wind'] = [start_pos0_wind[0][0], start_pos0_wind[1][0]]
+        data_entry['start_pos1_wind'] = [start_pos1_wind[0][0], start_pos1_wind[1][0]]
         data_entry['start_qdr0_wind'] = np.rad2deg(np.arctan2(start_pos0_wind[0][0], start_pos0_wind[1][0]))
         data_entry['start_qdr1_wind'] = np.rad2deg(np.arctan2(start_pos1_wind[0][0], start_pos1_wind[1][0]))
         data_entry['start_dist0_wind'] = np.sqrt(start_pos0_wind[0][0]**2 + start_pos0_wind[1][0]**2)
@@ -169,4 +169,15 @@ def generate_scenario():
         wind_entry['direction'] = np.rad2deg(wind_direction)
         wind_data.append(wind_entry)
 
-    return
+    #print(scenario_data)
+    # Write data to json files
+    location = "thesis_tools/data"
+    scenario_data_json = json.dumps(scenario_data, indent=4)
+    scenario_json_file = open(location + "/scenario.json", "w")
+    scenario_json_file.write(scenario_data_json)
+    scenario_json_file.close()
+
+    wind_data_json = json.dumps(wind_data, indent=4)
+    wind_json_file = open(location + "/wind.json", "w")
+    wind_json_file.write(wind_data_json)
+    wind_json_file.close()

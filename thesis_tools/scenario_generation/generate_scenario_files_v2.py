@@ -162,17 +162,17 @@ for i in range(parameters.N_missions):
     wpt_lines = ""
     for j in range(1, len(route_data[i][0]['points'])):
         wp_lat, wp_lon = geo.qdrpos(lat_ref, lon_ref, route_data[i][0]['qdr'][j], route_data[i][0]['dist'][j] / nm)
-        wpt_lines_wind_calm += "00:00:00.00>ADDWPT UAV0 " + str(wp_lat) + "," + str(wp_lon) + "\n"
+        wpt_lines += "00:00:00.00>ADDWPT UAV0 " + str(wp_lat) + "," + str(wp_lon) + "\n"
 
     for j in range(1, len(route_data[i][1]['points'])):
         wp_lat, wp_lon = geo.qdrpos(lat_ref, lon_ref, route_data[i][1]['qdr'][j], route_data[i][1]['dist'][j] / nm)
-        wpt_lines_wind_calm += "00:00:00.00>ADDWPT UAV1 " + str(wp_lat) + "," + str(wp_lon) + "\n"
+        wpt_lines += "00:00:00.00>ADDWPT UAV1 " + str(wp_lat) + "," + str(wp_lon) + "\n"
 
     # Create geofence
     gf_lines = "00:00:00.00>POLY GF "
     for j in range(len(geofence_data[i]['points'])):
         gf_lat, gf_lon = geo.qdrpos(lat_ref, lon_ref, geofence_data[i]['qdr'][j], geofence_data[i]['dist'][j] / nm)
-        gf_lines_wind_calm += str(gf_lat) + " " + str(gf_lon) + " "
+        gf_lines += str(gf_lat) + " " + str(gf_lon) + " "
     
     gf_lines += "\n"
 

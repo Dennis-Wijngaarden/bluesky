@@ -94,7 +94,7 @@ def generate_route():
                     if ((np.dot(n_gf0, u_trk) > 0) and not( k == 0 )):
                         # Caluclate maximum leg time from distance if converging
                         max_dist_gf0 = calc_dist_to_crossing(a_gf0, u_gf0, previous_coordinate, u_trk)
-                        max_time_gf0 = max_dist_gf0 / airspeed[j]
+                        max_time_gf0 = max_dist_gf0 / airspeed
 
                         if (max_time_gf0 > parameters.t_leg_min):
                             leg_time = random.uniform(parameters.t_leg_min, min(max_time_gf0, parameters.t_leg_max))
@@ -113,8 +113,8 @@ def generate_route():
                 data_entry['points'].append(absolute_coordinate)
 
                 # Check if accumulated time bigger than mission time
-                accumulted_leg_time += leg_time
-                if (accumulted_leg_time > (2. * parameters.t_mission)):
+                accumulated_leg_time += leg_time
+                if (accumulated_leg_time > (2. * parameters.t_mission)):
                     route_done = True
                 k += 1
             

@@ -1,9 +1,8 @@
 import os
 import traffic_generator
-import scenario_generator
-import wind_generator
-import route_generator
-import geofence_generator
+import scenario_generator_v2
+import route_generator_v2
+import geofence_generator_v2
 
 print('Generate traffic')
 traffic_generator.generate_traffic()
@@ -12,10 +11,10 @@ traffic_generator.generate_traffic()
 #wind_generator.generate_wind()
 
 print('Generate scenario')
-scenario_generator.generate_scenario()
+scenario_generator_v2.generate_scenario()
 
 print('Generate route')
-route_generator.generate_route()
+route_generator_v2.generate_route()
 
 print('Generate geofences')
-geofence_generator.generate_geofences()
+geofence_generator_v2.generate_geofence()

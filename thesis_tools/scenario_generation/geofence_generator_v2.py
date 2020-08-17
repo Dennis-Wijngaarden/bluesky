@@ -110,13 +110,13 @@ def generate_geofence():
         data_entry['dist'] = []
 
         # get start positions
-        start_positions = np.concatenate((  scenario_data[i]['start_pos0_nowind'], \
-                                            scenario_data[i]['start_pos1_nowind'], \
-                                            scenario_data[i]['start_pos0_wind'], \
-                                            scenario_data[i]['start_pos1_wind']), \
+        start_positions = np.concatenate((  [scenario_data[i]['start_pos0_nowind']], \
+                                            [scenario_data[i]['start_pos1_nowind']], \
+                                            [scenario_data[i]['start_pos0_wind']], \
+                                            [scenario_data[i]['start_pos1_wind']]), \
                                             axis = 0)
-
-        route_points = np.concatenate((route_data[i]['points'], start_positions), axis=0)
+        
+        route_points = np.concatenate((route_data[i][0]['points'], route_data[i][1]['points'], start_positions), axis=0)
 
         # Determine outer points of routes CCW
         route_hull = ConvexHull(route_points)
