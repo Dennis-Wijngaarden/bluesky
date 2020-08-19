@@ -140,7 +140,7 @@ for i in range(parameters.N_missions):
             str(parameters.ref_alt) + " " + str(scenario_data[i]['spd0'] / kts) + "\n"
 
     # Create first UAV in scenario for windy test series
-    cre_line_wind = "00:00:00.00>CRE UAV0 UAV_" + str(i) + "_0 " + str(start_lat0_wind) + " " + str(start_lon0_wind) + " " + str(scenario_data[i]['hdg0_wind']) + " " +\
+    cre_line_wind = "00:00:00.00>CRE UAV0 UAV_" + str(i) + "_0 " + str(start_lat0_wind) + " " + str(start_lon0_wind) + " " + str(np.rad2deg(scenario_data[i]['hdg0_wind'])) + " " +\
             str(parameters.ref_alt) + " " + str(scenario_data[i]['spd0'] / kts) + "\n"
 
     # Create conflicitng UAV in scenario for wind calm scenarios
@@ -148,7 +148,7 @@ for i in range(parameters.N_missions):
             str(parameters.ref_alt) + " " + str(scenario_data[i]['spd1'] / kts) + "\n"
 
     # Create conflicitng UAV in scenario for windy scenarios
-    conf_line_wind = "00:00:00.00>CRE UAV1 UAV_" + str(i) + "_1 " + str(start_lat1_wind) + " " + str(start_lon1_wind) + " " + str(scenario_data[i]['hdg1_wind']) + " " +\
+    conf_line_wind = "00:00:00.00>CRE UAV1 UAV_" + str(i) + "_1 " + str(start_lat1_wind) + " " + str(start_lon1_wind) + " " + str(np.rad2deg(scenario_data[i]['hdg1_wind'])) + " " +\
             str(parameters.ref_alt) + " " + str(scenario_data[i]['spd1'] / kts) + "\n"
 
     # Set bank limits for UAVs
