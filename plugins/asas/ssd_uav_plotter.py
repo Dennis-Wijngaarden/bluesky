@@ -134,7 +134,7 @@ class SSDUAVPlotter(object):
         # Consider every aircraft
         for i in range(ntraf):
             # Calculate SSD only for aircraft in conflict (See formulas appendix)
-            if conf.inconf[i]:
+            if conf.inconf[i] or self.cpa_invalid[i]:
                 
                 vmin = ownship.perf.vmin[i]
                 vmax = ownship.perf.vmax[i]
@@ -413,7 +413,10 @@ class SSDUAVPlotter(object):
                                 # Scale VO to clipper
                                 VO = pyclipper.scale_to_clipper(xy_gf_tuple)
                                 # Add scaled VO to clipper
-                                pc.AddPath(VO, pyclipper.PT_CLIP, True)
+                                try:
+                                    pc.AddPath(VO, pyclipper.PT_CLIP, True)
+                                except:
+                                    pass
 
                     # Execute clipper command
                     FRV = pyclipper.scale_from_clipper(
@@ -481,7 +484,7 @@ class SSDUAVPlotter(object):
         # Loop through SSDs of all aircraft
         for i in range(ntraf):
             # Only those that are in conflict need to resolve
-            if conf.inconf[i] and ARV[i] is not None and len(ARV[i]) > 0:
+            if (conf.inconf[i] or self.cpa_invalid[i]) and ARV[i] is not None and len(ARV[i]) > 0:
                 # Loop through all exteriors and append. Afterwards concatenate
                 p = []
                 q = []
@@ -578,7 +581,7 @@ class SSDUAVPlotter(object):
         for i in range(len(self.flight_ids)):
             # Plot FRV
             traffic_idx = traf.id2idx(self.flight_ids[i])
-            self.plots[i].update(conf.FRV[traffic_idx], conf.ARV[traffic_idx])
+            self.plots[i].update(conf.FRV[traffic_idx], conf.ARV[traffic_idx], traffic_idx)
     
     def add_plot(self, flight_id):
         self.flight_ids.append(flight_id)
@@ -601,21 +604,43 @@ class SSDPlotElement():
         self.fig.canvas.draw()
         plt.pause(0.01)
     
-    def update(self, FRV, ARV):
+    def update(self, FRV, ARV, idx):
         plt.ion()
         self.ax.clear()
+
+        vmin = traf.perf.vmin[idx]
+        vmax = traf.perf.vmax[idx]
+        vmin = max(vmin, 0.001)
+
+        # wind field around ownship
+        vn_wind, ve_wind = traf.wind.getdata(traf.lat[idx], traf.lon[idx], traf.alt[idx])
+        
+        angles = np.arange(0,360,1)
+        inner_circle_x = vmin * np.cos(angles) + ve_wind
+        inner_circle_y = vmin * np.sin(angles) + vn_wind
+
+        outer_circle_x = vmax * np.cos(angles) + ve_wind
+        outer_circle_y = vmax * np.sin(angles) + vn_wind
+        
+        # draw outer circle
+        self.ax.fill(outer_circle_x, outer_circle_y, color= '#C0C0C0')
+
         for i in range(len(FRV)):
             FRVi = np.array(FRV[i])
             x_FRVi = np.append(FRVi[:,0] , np.array(FRVi[0,0]))
             y_FRVi = np.append(FRVi[:,1] , np.array(FRVi[0,1]))
             self.ax.fill(x_FRVi, y_FRVi, color = '#FF0000') #red
-                         
-        for i in range(len(ARV)):
-            ARVi = np.array(ARV[i])
-            x_ARVi = np.append(ARVi[:,0] , np.array(ARVi[0,0]))
-            y_ARVi = np.append(ARVi[:,1] , np.array(ARVi[0,1]))
-            self.ax.fill(x_ARVi, y_ARVi, color = '#C0C0C0') #grey
-        self.ax.scatter([0.], [0.])
+        
+        #for i in range(len(ARV)):
+        #    ARVi = np.array(ARV[i])
+        #    x_ARVi = np.append(ARVi[:,0] , np.array(ARVi[0,0]))
+        #    y_ARVi = np.append(ARVi[:,1] , np.array(ARVi[0,1]))
+        #    self.ax.fill(x_ARVi, y_ARVi, color = '#C0C0C0') #grey
+
+        # draw inner circle
+        self.ax.fill(inner_circle_x, inner_circle_y, color= '#FFFFFF')
+        
+        self.ax.arrow(0, 0, traf.gseast[idx], traf.gsnorth[idx], head_width=0.001, head_length=0.002, fc='k', ec='k')
         self.ax.axis('on')
         self.ax.axis('equal')
         self.fig.canvas.draw()
