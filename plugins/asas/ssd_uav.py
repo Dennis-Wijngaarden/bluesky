@@ -65,7 +65,7 @@ class SSDUAV(ConflictResolution):
         
         # Now assign resolutions to variables in the ASAS class
         # Start with current states, need a copy, otherwise it changes traf!
-        newtrack = np.copy(ownship.hdg)
+        newtrack = np.copy(ownship.trk)
         newgs = np.copy(ownship.gs)
         # Calculate new track and speed
         # No need to cap the speeds, since SSD implicitly caps
