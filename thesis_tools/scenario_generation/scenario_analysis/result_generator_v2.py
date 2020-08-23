@@ -836,6 +836,64 @@ def hypothesis3_data_generator(sample_size_conflicts, sample_size_scenarios, fir
     df_info = pd.DataFrame(data_info, columns = ['TS', 'RS', 'Type', 'dist', 'Sample size', 'N samples'])
     print(df_info)
 
+def hypothesis3_pvalue_generator():
+    random.seed()
+
+    # create empty statistics list
+
+    stats = []
+    
+    # import dataframes
+
+    df_dict = {}
+    df_dict['IPR_C'] = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr_c.csv")
+    df_dict['IPR_S'] = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr_s.csv")
+    df_dict['VPRG_C'] = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg_c.csv")
+    df_dict['VPRG_S'] = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg_s.csv")
+
+    # Test geofenced scenarios
+    for TS in ['TS2', 'TS4']:
+        for RS in ['RS1', 'RS2', 'RS3']:
+            for dist_pairs in [['small', 'medium'], ['small', 'large'], ['medium', 'large']]:
+                dist_ref = dist_pairs[0]
+                dist_sub = dist_pairs[1]
+                for key, df in df_dict.items():
+                    df_ref = df[df['TS'] == TS]
+                    df_ref = df_ref[df_ref['RS'] == RS]
+                    df_ref = df_ref[df_ref['dist'] == dist_ref]
+
+                    df_sub = df[df['TS'] == TS]
+                    df_sub = df_sub[df_sub['RS'] == RS]
+                    df_sub = df_sub[df_sub['dist'] == dist_sub]
+
+                    # Get lists
+                    ref_list = df_ref[key].tolist()
+                    sub_list = df_sub[key].tolist()
+
+                    # randomize list order
+                    random.shuffle(ref_list)
+                    random.shuffle(sub_list)
+
+                    # determine minimum size of lists
+                    min_list_size = min(len(ref_list), len(sub_list))
+
+                    if min_list_size == 0:
+                        continue
+
+                    # cut size of lists to minimum size
+                    ref_list = ref_list[0:min_list_size]
+                    sub_list = sub_list[0:min_list_size]
+
+                    # Now perform wilcoxon test with zsplit
+                    W, p = scipy.stats.wilcoxon(ref_list, sub_list, zero_method = 'zsplit', alternative = 'greater')
+
+                    stats.append([TS, TS, key, RS, dist_ref, dist_sub, p, W, min_list_size])
+    
+        
+    df_stats = pd.DataFrame(stats, columns = ['TS_ref', 'TS_sub', 'parameter', 'RS', 'ref_dist', 'sub_dist', 'p', 'W', 'n_samples'])
+    df_stats.to_csv("thesis_tools/results/pvalues/hypothesis3.csv")
+    print(df_stats)
+
 def hypothesis3_IPR_box_whiskerplot_creator():
     df_IPR_C = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr_c.csv")
     df_IPR_S = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr_s.csv")
@@ -930,3 +988,4 @@ def hypothesis3_VPRG_box_whiskerplot_creator():
 #hypothesis3_data_generator(200,200,100,200)
 #hypothesis3_IPR_box_whiskerplot_creator()
 #hypothesis3_VPRG_box_whiskerplot_creator()
+hypothesis3_pvalue_generator()
