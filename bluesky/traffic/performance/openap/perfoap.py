@@ -140,6 +140,8 @@ class OpenAP(PerfBase):
             self.vsmax[-n:] = self.coeff.limits_rotor[actype]["vsmax"]
             self.hmax[-n:] = self.coeff.limits_rotor[actype]["hmax"]
 
+            self.mmo[-n:] = 1.
+
             self.cd0_clean[-n:] = np.nan
             self.k_clean[-n:] = np.nan
             self.cd0_to[-n:] = np.nan
