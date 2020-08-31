@@ -6,7 +6,7 @@ import os
 
 import route_generator as rg
 
-def calc_start_position(gs0, gs1, trk0, trk1, d_cpa, t_cpa):
+def calc_start_position(gs0, gs1, trk0, trk1, d_cpa, t_los):
     v0 = gs0 * np.matrix([[np.sin(trk0)], [np.cos(trk0)]])
     v1 = gs1 * np.matrix([[np.sin(trk1)], [np.cos(trk1)]])
 
@@ -29,6 +29,10 @@ def calc_start_position(gs0, gs1, trk0, trk1, d_cpa, t_cpa):
     cpa_pos0 = np.array(lambdas)[0][0] * np.matrix([[np.sin(trk0)], [np.cos(trk0)]])
     cpa_pos1 = np.array(lambdas)[1][0] * np.matrix([[np.sin(trk1)], [np.cos(trk1)]])
 
+    d_in = np.sqrt(parameters.R_PZ**2 - d_cpa**2)
+
+    t_cpa = t_los + d_in / v_rel_abs
+
     # Now calculate start positions t_cpa seconds back in time
 
     start_pos0 = np.array(cpa_pos0) - t_cpa * np.array(v0)
@@ -36,7 +40,7 @@ def calc_start_position(gs0, gs1, trk0, trk1, d_cpa, t_cpa):
     return start_pos0, start_pos1
 
 def get_relative_distance(point0, point1):
-    return np.sqrt(point0[0][0]**2 + point1[1][0]**2)
+    return np.sqrt((point0[0][0] - point1[0][0])**2 + (point0[1][0] - point1[1][0])**2)
 
 def trk_to_hdg(trk, airspeed, windspeed, wind_dir):
     wind_ne = np.array([-windspeed * np.cos(wind_dir), -windspeed * np.sin(wind_dir)])
@@ -116,17 +120,17 @@ def generate_scenario():
 
             # Define random d_cpa for conflict
             d_cpa = random.uniform(0., parameters.R_PZ)
-            t_cpa = 30. 
+            t_los = 30. 
 
             # Calculate groundspeed for windy conditions
             gs0 = rg.airspeed_to_groundspeed(spd0, np.deg2rad(trk0), wind_speed, wind_direction)
             gs1 = rg.airspeed_to_groundspeed(spd1, np.deg2rad(trk1), wind_speed, wind_direction)
 
             # Calculate start positions for wind calm conditions
-            start_pos0_nowind, start_pos1_nowind = calc_start_position(spd0, spd1, np.deg2rad(trk0), np.deg2rad(trk1), d_cpa, t_cpa)
+            start_pos0_nowind, start_pos1_nowind = calc_start_position(spd0, spd1, np.deg2rad(trk0), np.deg2rad(trk1), d_cpa, t_los)
             
             # Calculate start positions for windy conditions
-            start_pos0_wind, start_pos1_wind = calc_start_position(gs0, gs1, np.deg2rad(trk0), np.deg2rad(trk1), d_cpa, t_cpa)
+            start_pos0_wind, start_pos1_wind = calc_start_position(gs0, gs1, np.deg2rad(trk0), np.deg2rad(trk1), d_cpa, t_los)
 
             ###################
             # Valiidty Checks #
