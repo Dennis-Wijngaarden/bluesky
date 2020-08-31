@@ -546,10 +546,25 @@ def hypothesis2_pvalue_generator():
     df_dict['VPRG_C'] = pd.read_csv("thesis_tools/results/performance/hypothesis2_vprg_c.csv")
     df_dict['VPRG_S'] = pd.read_csv("thesis_tools/results/performance/hypothesis2_vprg_s.csv")
 
+    # Load overall scenario data and append
+    df_IPR_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_ipr_c.csv")
+    df_IPR_C_overall['wind'] = 'no'
+
+    df_IPR_C_overall = pd.concat([df_IPR_C_overall[df_IPR_C_overall['TS'] == 'TS1'], df_IPR_C_overall[df_IPR_C_overall['TS'] == 'TS2']])
+    df_IPR_C_overall['TS'] = df_IPR_C_overall['TS'].map({'TS1': 'TS3', 'TS2': 'TS4'})
+    df_dict['IPR_C'] = pd.concat([df_dict['IPR_C'], df_IPR_C_overall])
+
+    df_VPRG_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_vprg_c.csv")
+    df_VPRG_C_overall['wind'] = 'no'
+
+    df_VPRG_C_overall = pd.concat([df_VPRG_C_overall[df_VPRG_C_overall['TS'] == 'TS1'], df_VPRG_C_overall[df_VPRG_C_overall['TS'] == 'TS2']])
+    df_VPRG_C_overall['TS'] = df_VPRG_C_overall['TS'].map({'TS1': 'TS3', 'TS2': 'TS4'})
+    df_dict['VPRG_C'] = pd.concat([df_dict['VPRG_C'], df_VPRG_C_overall])
+
     # Test windy scenarios
     for TS in ['TS3', 'TS4']:
         for RS in ['RS1', 'RS2', 'RS3']:
-            for wind_pairs in [['low', 'medium'], ['low', 'strong'], ['medium', 'strong']]:
+            for wind_pairs in [['low', 'medium'], ['low', 'strong'], ['medium', 'strong'], ['no', 'low'], ['no', 'medium'], ['no', 'strong']]:
                 wind_ref = wind_pairs[0]
                 wind_sub = wind_pairs[1]
                 for key, df in df_dict.items():
@@ -629,13 +644,21 @@ def hypothesis2_IPR_box_whiskerpplot_creator():
     df_IPR_C_gf = df_IPR_C[df_IPR_C['TS'] == 'TS4']
     df_IPR_S_gf = df_IPR_S[df_IPR_S['TS'] == 'TS4']
 
+    # Load overall scenario data and append
+    df_IPR_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_ipr_c.csv")
+    df_IPR_C_overall['RS'] = df_IPR_C_overall['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+    df_IPR_C_overall['wind'] = 'no'
+
+    df_IPR_C_nogf = pd.concat([df_IPR_C_overall[df_IPR_C_overall['TS'] == 'TS1'], df_IPR_C_nogf])
+    df_IPR_C_gf = pd.concat([df_IPR_C_overall[df_IPR_C_overall['TS'] == 'TS2'], df_IPR_C_gf])
+
     plt.figure()
     sns.boxplot(x='RS',y='IPR_C', hue='wind', data=df_IPR_C_nogf, palette="Greys")
     plt.ylabel('Intrusion Prevention Rate [%]')
     plt.xlabel('Rule-Set')
     plt.grid(axis='y')
     plt.ylim(bottom=.85)
-    plt.legend(ncol=3, title="wind category")
+    plt.legend(ncol=4, title="wind category")
     plt.subplots_adjust(bottom=0.15)
     plt.figure()
     sns.boxplot(x='RS',y='IPR_C', hue='wind', data=df_IPR_C_gf, palette="Greys")
@@ -643,7 +666,7 @@ def hypothesis2_IPR_box_whiskerpplot_creator():
     plt.xlabel('Rule-Set')
     plt.grid(axis='y')
     plt.ylim(bottom=.85)
-    plt.legend(ncol=3, title="wind category")
+    plt.legend(ncol=4, title="wind category")
     plt.subplots_adjust(bottom=0.15)
     #plt.figure()
     #sns.boxplot(x='RS',y='IPR_S', hue='wind', data=df_IPR_S_nogf, palette="Greys")
@@ -666,13 +689,21 @@ def hypothesis2_VPRG_box_whiskerpplot_creator():
     df_VPRG_C['RS'] = df_VPRG_C['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
     df_VPRG_S['RS'] = df_VPRG_S['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
 
+    # Load overall scenario data and append
+    df_VPRG_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_vprg_c.csv")
+    df_VPRG_C_overall['RS'] = df_VPRG_C_overall['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+    df_VPRG_C_overall['wind'] = 'no'
+    df_VPRG_C_overall
+
+    df_VPRG_C = pd.concat([df_VPRG_C_overall[df_VPRG_C_overall['TS'] == 'TS2'], df_VPRG_C])
+
     plt.figure()
     sns.boxplot(x='RS',y='VPRG_C', hue='wind', data=df_VPRG_C, palette="Greys")
     plt.ylabel('Violation Prevention Rate of the Geofence [%]')
     plt.xlabel('Rule-Set')
     plt.grid(axis='y')
     plt.ylim(bottom=.9)
-    plt.legend(ncol=3, title="wind category")
+    plt.legend(ncol=4, title="wind category")
     plt.subplots_adjust(bottom=0.15)
     #plt.figure()
     #sns.boxplot(x='RS',y='VPRG_S', hue='wind', data=df_VPRG_S, palette="Greys")
@@ -860,10 +891,20 @@ def hypothesis3_pvalue_generator():
     df_dict['VPRG_C'] = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg_c.csv")
     df_dict['VPRG_S'] = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg_s.csv")
 
+    # import overall dataframes
+    df_IPR_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_ipr_c.csv")
+    df_IPR_C_overall['dist'] = 'all'
+    df_VPRG_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_vprg_c.csv")
+    df_VPRG_C_overall['dist'] = 'all'
+
+    # Append overall dataframes to categorised dataframes
+    df_dict['IPR_C'] = pd.concat([df_dict['IPR_C'], df_IPR_C_overall])
+    df_dict['VPRG_C'] = pd.concat([df_dict['VPRG_C'], df_VPRG_C_overall])
+
     # Test geofenced scenarios
     for TS in ['TS2', 'TS4']:
         for RS in ['RS1', 'RS2', 'RS3']:
-            for dist_pairs in [['small', 'medium'], ['small', 'large'], ['medium', 'large']]:
+            for dist_pairs in [['small', 'medium'], ['small', 'large'], ['medium', 'large'], ['all', 'small'], ['all', 'medium'], ['all', 'large']]:
                 dist_ref = dist_pairs[0]
                 dist_sub = dist_pairs[1]
                 for key, df in df_dict.items():
@@ -894,7 +935,7 @@ def hypothesis3_pvalue_generator():
                     sub_list = sub_list[0:min_list_size]
 
                     # Now perform wilcoxon test with zsplit
-                    W, p = scipy.stats.wilcoxon(ref_list, sub_list, zero_method = 'zsplit', alternative = 'greater')
+                    W, p = scipy.stats.wilcoxon(ref_list, sub_list, zero_method = 'zsplit')
 
                     stats.append([TS, TS, key, RS, dist_ref, dist_sub, p, W, min_list_size])
     
@@ -906,6 +947,12 @@ def hypothesis3_pvalue_generator():
 def hypothesis3_IPR_box_whiskerplot_creator():
     df_IPR_C = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr_c.csv")
     df_IPR_S = pd.read_csv("thesis_tools/results/performance/hypothesis3_ipr_s.csv")
+    
+    # Load overall scenario data and append
+    df_IPR_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_ipr_c.csv")
+    df_IPR_C_overall['dist'] = 'all'
+
+    df_IPR_C = pd.concat([df_IPR_C_overall, df_IPR_C])
 
     df_IPR_C['RS'] = df_IPR_C['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
     df_IPR_S['RS'] = df_IPR_S['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
@@ -922,7 +969,7 @@ def hypothesis3_IPR_box_whiskerplot_creator():
     plt.xlabel("Rule-Set")
     plt.ylim(bottom=.85)
     plt.ylim(top=1.)
-    plt.legend(ncol=3, title="distance to geofence")
+    plt.legend(ncol=4, title="distance to geofence")
     plt.subplots_adjust(bottom=0.15)
     plt.figure()
     sns.boxplot(x='RS',y='IPR_C', hue='dist', data=df_IPR_C_wind, palette="Greys")
@@ -931,7 +978,7 @@ def hypothesis3_IPR_box_whiskerplot_creator():
     plt.xlabel("Rule-Set")
     plt.ylim(bottom=.85)
     plt.ylim(top=1.)
-    plt.legend(ncol=3, title="distance to geofence")
+    plt.legend(ncol=4, title="distance to geofence")
     plt.subplots_adjust(bottom=0.15)
     #plt.figure()
     #sns.boxplot(x='RS',y='IPR_S', hue='dist', data=df_IPR_S_nowind, palette="Greys")
@@ -953,6 +1000,12 @@ def hypothesis3_VPRG_box_whiskerplot_creator():
     df_VPRG_C = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg_c.csv")
     df_VPRG_S = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg_S.csv")
 
+    # Load overall scenario data and append
+    df_VPRG_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_VPRG_c.csv")
+    df_VPRG_C_overall['dist'] = 'all'
+
+    df_VPRG_C = pd.concat([df_VPRG_C_overall, df_VPRG_C])
+
     df_VPRG_C['RS'] = df_VPRG_C['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
     df_VPRG_S['RS'] = df_VPRG_S['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
 
@@ -967,7 +1020,7 @@ def hypothesis3_VPRG_box_whiskerplot_creator():
     plt.ylabel("Violation Prevention Rate of the Geofence [%]")
     plt.xlabel("Rule-Set")
     plt.ylim(bottom=.85)
-    plt.legend(ncol=3, title="distance to geofence")
+    plt.legend(ncol=4, title="distance to geofence")
     plt.subplots_adjust(bottom=0.15)
     plt.figure()
     sns.boxplot(x='RS',y='VPRG_C', hue='dist', data=df_VPRG_C_wind, palette="Greys")
@@ -975,7 +1028,7 @@ def hypothesis3_VPRG_box_whiskerplot_creator():
     plt.ylabel("Violation Prevention Rate of the Geofence [%]")
     plt.xlabel("Rule-Set")
     plt.ylim(bottom=.85)
-    plt.legend(ncol=3, title="distance to geofence")
+    plt.legend(ncol=4, title="distance to geofence")
     plt.subplots_adjust(bottom=0.15)
     #plt.figure()
     #sns.boxplot(x='RS',y='VPRG_S', hue='dist', data=df_VPRG_S_nowind, palette="Greys")
@@ -1004,5 +1057,5 @@ def hypothesis3_VPRG_box_whiskerplot_creator():
 #hypothesis2_VPRG_box_whiskerpplot_creator()
 #hypothesis3_data_generator(100,100,200,400)
 #hypothesis3_IPR_box_whiskerplot_creator()
-hypothesis3_VPRG_box_whiskerplot_creator()
+#hypothesis3_VPRG_box_whiskerplot_creator()
 #hypothesis3_pvalue_generator()
