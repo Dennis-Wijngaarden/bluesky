@@ -49,7 +49,7 @@ def analyse_reference(TS, path):
         min_gf_dist1, violation1 = filter_geofence_reference_date(gflog_raw_data, gflog_callsigns, "UAV1")
 
         # validaty data
-        validity = leg_finished0 and leg_finished1 and not violation0 and not violation1
+        validity = not violation0 and not violation1
 
         # write line to csv
         csv_text += str(time0) + ', ' + str(distance0) + ', ' + str(leg_finished0) + ', ' + str(min_gf_dist0) + ", " + str(violation0) + ', ' +\
