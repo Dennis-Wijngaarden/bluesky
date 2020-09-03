@@ -893,18 +893,23 @@ def hypothesis3_pvalue_generator():
 
     # import overall dataframes
     df_IPR_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_ipr_c.csv")
-    df_IPR_C_overall['dist'] = 'all'
-    df_VPRG_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_vprg_c.csv")
-    df_VPRG_C_overall['dist'] = 'all'
+    df_IPR_C_overall['dist'] = 'no'
+
+    df_IPR_C_overall_nowind_nogf = df_IPR_C_overall[df_IPR_C_overall['TS'] == 'TS1']
+    df_IPR_C_overall_wind_nogf = df_IPR_C_overall[df_IPR_C_overall['TS'] == 'TS3']
+
+    # A littl bit hacky
+    df_IPR_C_overall_nowind_nogf['TS'] = 'TS2'
+    df_IPR_C_overall_wind_nogf['TS'] = 'TS4'
 
     # Append overall dataframes to categorised dataframes
-    df_dict['IPR_C'] = pd.concat([df_dict['IPR_C'], df_IPR_C_overall])
-    df_dict['VPRG_C'] = pd.concat([df_dict['VPRG_C'], df_VPRG_C_overall])
+    df_dict['IPR_C'] = pd.concat([df_dict['IPR_C'], df_IPR_C_overall_nowind_nogf, df_IPR_C_overall_wind_nogf])
+    df_dict['VPRG_C'] = df_dict['VPRG_C']
 
     # Test geofenced scenarios
     for TS in ['TS2', 'TS4']:
         for RS in ['RS1', 'RS2', 'RS3']:
-            for dist_pairs in [['small', 'medium'], ['small', 'large'], ['medium', 'large'], ['all', 'small'], ['all', 'medium'], ['all', 'large']]:
+            for dist_pairs in [['small', 'medium'], ['small', 'large'], ['medium', 'large'], ['no', 'small'], ['no', 'medium'], ['no', 'large']]:
                 dist_ref = dist_pairs[0]
                 dist_sub = dist_pairs[1]
                 for key, df in df_dict.items():
@@ -950,16 +955,19 @@ def hypothesis3_IPR_box_whiskerplot_creator():
     
     # Load overall scenario data and append
     df_IPR_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_ipr_c.csv")
-    df_IPR_C_overall['dist'] = 'all'
+    df_IPR_C_overall['dist'] = 'no'
 
-    df_IPR_C = pd.concat([df_IPR_C_overall, df_IPR_C])
+    df_IPR_C_overall['RS'] = df_IPR_C_overall['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
+
+    df_IPR_C_overall_nowind_nogf = df_IPR_C_overall[df_IPR_C_overall['TS'] == 'TS1']
+    df_IPR_C_overall_wind_nogf = df_IPR_C_overall[df_IPR_C_overall['TS'] == 'TS3']
 
     df_IPR_C['RS'] = df_IPR_C['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
     df_IPR_S['RS'] = df_IPR_S['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
 
-    df_IPR_C_nowind = df_IPR_C[df_IPR_C['TS'] == 'TS2']
+    df_IPR_C_nowind = pd.concat([df_IPR_C_overall_nowind_nogf, df_IPR_C[df_IPR_C['TS'] == 'TS2']])
     df_IPR_S_nowind = df_IPR_S[df_IPR_S['TS'] == 'TS2']
-    df_IPR_C_wind = df_IPR_C[df_IPR_C['TS'] == 'TS4']
+    df_IPR_C_wind = pd.concat([df_IPR_C_overall_wind_nogf, df_IPR_C[df_IPR_C['TS'] == 'TS4']])
     df_IPR_S_wind = df_IPR_S[df_IPR_S['TS'] == 'TS4']
 
     plt.figure()
@@ -999,12 +1007,6 @@ def hypothesis3_IPR_box_whiskerplot_creator():
 def hypothesis3_VPRG_box_whiskerplot_creator():
     df_VPRG_C = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg_c.csv")
     df_VPRG_S = pd.read_csv("thesis_tools/results/performance/hypothesis3_vprg_S.csv")
-
-    # Load overall scenario data and append
-    df_VPRG_C_overall = pd.read_csv("thesis_tools/results/performance/hypothesis1_VPRG_c.csv")
-    df_VPRG_C_overall['dist'] = 'all'
-
-    df_VPRG_C = pd.concat([df_VPRG_C_overall, df_VPRG_C])
 
     df_VPRG_C['RS'] = df_VPRG_C['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
     df_VPRG_S['RS'] = df_VPRG_S['RS'].map({'RS1': 'OPT', 'RS2': 'DEST', 'RS3': 'HDG'})
@@ -1058,4 +1060,4 @@ def hypothesis3_VPRG_box_whiskerplot_creator():
 #hypothesis3_data_generator(100,100,200,400)
 #hypothesis3_IPR_box_whiskerplot_creator()
 #hypothesis3_VPRG_box_whiskerplot_creator()
-#hypothesis3_pvalue_generator()
+hypothesis3_pvalue_generator()
