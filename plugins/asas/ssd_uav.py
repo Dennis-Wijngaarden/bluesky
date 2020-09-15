@@ -198,9 +198,9 @@ class SSDUAV(ConflictResolution):
                 if vmin == vmax == 0:
                     continue
                 if (priocode == 'RS3'):
-                    v_selected = np.sqrt(gsnorth[i]**2 + gseast[i]**2)
-                    circle_tup = (tuple(map(tuple, np.flipud((xyc * (v_selected + 0.001)) + np.array([ve_wind, vn_wind])))), tuple(map(tuple, (xyc * (v_selected - 0.001)) + np.array([ve_wind, vn_wind]))))
-                    circle_lst = [list(map(list, np.flipud((xyc * (v_selected + 0.001)) + np.array([ve_wind, vn_wind])))), list(map(list, (xyc * (v_selected - 0.001)) + np.array([ve_wind, vn_wind])))]
+                    v_tas_selected = np.sqrt((gsnorth[i] - vn_wind)**2 + (gseast[i] - ve_wind)**2)
+                    circle_tup = (tuple(map(tuple, np.flipud((xyc * (v_tas_selected + 0.001)) + np.array([ve_wind, vn_wind])))), tuple(map(tuple, (xyc * (v_tas_selected - 0.001)) + np.array([ve_wind, vn_wind]))))
+                    circle_lst = [list(map(list, np.flipud((xyc * (v_tas_selected + 0.001)) + np.array([ve_wind, vn_wind])))), list(map(list, (xyc * (v_tas_selected - 0.001)) + np.array([ve_wind, vn_wind])))]
                 else:
                     vmin = max(vmin, 0.001)
                     # Map them into the format pyclipper wants. Outercircle CCW, innercircle CW
