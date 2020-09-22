@@ -28,6 +28,18 @@ def init_plugin():
     # init_plugin() should always return these two dicts.
     return config, {}
 
+def trk_to_hdg(trk, airspeed, vn_wind, ve_wind):
+    trk = np.deg2rad(trk)
+    # Calculate decrab angle (right positivive)
+    u_right = np.array([np.cos(trk + 0.5 * np.pi), np.sin(trk + 0.5 * np.pi)]) # (north, east) Unit vector right perpenidcular to track
+    wind_right = vn_wind * u_right[0] + ve_wind * u_right[1] # Wind component along u_right
+    decrab_angle = np.arcsin(-wind_right / airspeed)# to right positive
+
+    # so the hdg is the trk + decrab_angle
+    hdg = np.rad2deg((trk + decrab_angle) % (2. * np.pi))
+
+    return hdg
+
 class SSDUAV(ConflictResolution):
     def __init__(self):
         super().__init__()
@@ -124,10 +136,11 @@ class SSDUAV(ConflictResolution):
         lon = ownship.lon
         ntraf = ownship.ntraf
         hdg = ownship.hdg
-        gs_ap = ownship.ap.tas
-        hdg_ap = ownship.ap.trk
-        apnorth = np.cos(hdg_ap / 180. * np.pi) * gs_ap
-        apeast = np.sin(hdg_ap / 180. * np.pi) * gs_ap
+        tas_ap = ownship.ap.tas
+        vn_wind, ve_wind = ownship.wind.getdata(ownship.lat, ownship.lon, ownship.alt)
+        hdg_ap = trk_to_hdg(ownship.ap.trk, ownship.ap.tas, vn_wind, ve_wind) 
+        apnorth = np.cos(hdg_ap / 180. * np.pi) * tas_ap + vn_wind
+        apeast = np.sin(hdg_ap / 180. * np.pi) * tas_ap + ve_wind
         
         # Local variables, will be put into asas later
         FRV_loc = [None] * ownship.ntraf
@@ -525,8 +538,10 @@ class SSDUAV(ConflictResolution):
         ARV = conf.ARV_calc
         # Select AP-setting as reference point for closest to target rulesets
         if self.priocode == "RS2":
-            gsnorth = np.cos(ownship.ap.trk / 180 * np.pi) * ownship.ap.tas
-            gseast = np.sin(ownship.ap.trk / 180 * np.pi) * ownship.ap.tas
+            vn_wind, ve_wind = ownship.wind.getdata(ownship.lat, ownship.lon, ownship.alt)
+            ap_hdg = trk_to_hdg(ownship.ap.trk, ownship.ap.tas, vn_wind, ve_wind)
+            gsnorth = np.cos(ap_hdg / 180 * np.pi) * ownship.ap.tas + vn_wind
+            gseast = np.sin(ap_hdg / 180 * np.pi) * ownship.ap.tas + ve_wind
         else:
             gsnorth = ownship.gsnorth
             gseast = ownship.gseast
