@@ -95,7 +95,8 @@ class SSDUAV(ConflictResolution):
         newvs = ownship.vs
 
         # Cap the velocity
-        newgscapped = np.maximum(ownship.perf.vmin, np.minimum(ownship.perf.vmax, newgs))
+        #newgscapped = np.maximum(ownship.perf.vmin, np.minimum(ownship.perf.vmax, newgs))
+        newgscapped = newgs
 
         alt = ownship.selalt
 
