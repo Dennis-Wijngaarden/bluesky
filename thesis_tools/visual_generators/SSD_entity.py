@@ -286,7 +286,7 @@ class SSD_entity(object):
 
         ARV = RV_polygon.difference(VOs_polygon)
         FRV = RV_polygon.intersection(VOs_polygon)
-        print(ARV)
+        #print(ARV)
 
         if FRV.geom_type == 'Polygon':
             path = pathify(FRV)
@@ -302,7 +302,7 @@ class SSD_entity(object):
             path = pathify(ARV)
             patch = PathPatch(path, facecolor='grey', edgecolor='grey')
             ax.add_patch(patch)
-        elif FRV.geom_type == 'MultiPolygon':
+        elif ARV.geom_type == 'MultiPolygon':
             for geom in ARV.geoms:
                 path = pathify(geom)
                 patch = PathPatch(path, facecolor='grey', edgecolor='grey')
@@ -377,7 +377,7 @@ def airspeed_to_groundsspeed(airspeed, trk, v_wind_x, v_wind_y):
 
 SSD = SSD(0., 0.)
 SSD.add_SSD_entity('UAV1', 0, 0, 0, 10, 20, 5)
-SSD.add_SSD_entity('UAV2', 100, 0, 270, 10, 20, 5)
+SSD.add_SSD_entity('UAV2', 100, 100, 270, 10, 20, 5)
 SSD.geofence.add_segment((-100, 100), (-100, -100))
 #SSD.SSD_entities['UAV1'].plot_VOs()
 #SSD.SSD_entities['UAV1'].plot_VOs_geofences()
