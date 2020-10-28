@@ -1,5 +1,6 @@
 import numpy as np
 from shapely.geometry import Polygon, MultiPolygon
+import shapely
 from sympy.solvers import solve
 import sympy as sp
 import matplotlib.pyplot as plt
@@ -13,6 +14,8 @@ R_PZ = 50. # Radius of protected zone [m]
 v_range = 30. # Range on the axes of a plot
 vec_x = np.array([[1], [0]])
 vec_y = np.array([[0], [1]])
+unit_dartipp = Polygon([(0., -0.5), (1., -1.), (0., 1.), (-1., -1.)]) # unit darttip
+darttip_scale = 1.5 # default scaling of darttip
 
 # Scenario specific constants
 half_geofence_width = 200. # [m]
@@ -225,8 +228,19 @@ class SSD_entity(object):
 
         fig, ax = plt.subplots()
         path = pathify(RV_polygon)
-        patch = PathPatch(path, facecolor='grey', edgecolor='grey')
+        patch = PathPatch(path, facecolor='lightgrey', edgecolor='black')
         ax.add_patch(patch)
+
+        # draw own speed vector
+        speed_vector = Arrow(self.SSD.v_wind_x, self.SSD.v_wind_y, self.gs_x, self.gs_y, facecolor='black', edgecolor='black')
+        ax.add_patch(speed_vector)
+
+        # draw dartip
+        darttip = shapely.affinity.scale(unit_dartipp, xfact=darttip_scale, yfact=darttip_scale, origin=(0,0))
+        darttip = shapely.affinity.rotate(darttip, -np.rad2deg(self.trk), origin=(0,0))
+        darttip_path = pathify(darttip)
+        darttip_patch = PathPatch(darttip_path, facecolor='black', edgecolor='black')
+        ax.add_patch(darttip_patch)
 
         plt.xlim(-v_range, v_range)
         plt.ylim(-v_range, v_range)
@@ -240,13 +254,24 @@ class SSD_entity(object):
 
         if VOs_polygon.geom_type == 'Polygon':
             path = pathify(VOs_polygon)
-            patch = PathPatch(path, facecolor='red', edgecolor='red')
+            patch = PathPatch(path, facecolor='red', edgecolor='black')
             ax.add_patch(patch)
         elif VOs_polygon.geom_type == 'MultiPolygon':
             for geom in VOs_polygon.geoms:
                 path = pathify(geom)
-                patch = PathPatch(path, facecolor='red', edgecolor='red')
+                patch = PathPatch(path, facecolor='red', edgecolor='black')
                 ax.add_patch(patch)
+
+        # draw own speed vector
+        speed_vector = Arrow(self.SSD.v_wind_x, self.SSD.v_wind_y, self.gs_x, self.gs_y, facecolor='black', edgecolor='black')
+        ax.add_patch(speed_vector)
+
+        # draw dartip
+        darttip = shapely.affinity.scale(unit_dartipp, xfact=darttip_scale, yfact=darttip_scale, origin=(0,0))
+        darttip = shapely.affinity.rotate(darttip, -np.rad2deg(self.trk), origin=(0,0))
+        darttip_path = pathify(darttip)
+        darttip_patch = PathPatch(darttip_path, facecolor='black', edgecolor='black')
+        ax.add_patch(darttip_patch)
 
         plt.xlim(-v_range, v_range)
         plt.ylim(-v_range, v_range)
@@ -261,13 +286,24 @@ class SSD_entity(object):
 
         if VOs_polygon.geom_type == 'Polygon':
             path = pathify(VOs_polygon)
-            patch = PathPatch(path, facecolor='red', edgecolor='red')
+            patch = PathPatch(path, facecolor='red', edgecolor='black')
             ax.add_patch(patch)
         elif VOs_polygon.geom_type == 'MultiPolygon':
             for geom in VOs_polygon.geoms:
                 path = pathify(geom)
-                patch = PathPatch(path, facecolor='red', edgecolor='red')
+                patch = PathPatch(path, facecolor='red', edgecolor='black')
                 ax.add_patch(patch)
+
+        # draw own speed vector
+        speed_vector = Arrow(self.SSD.v_wind_x, self.SSD.v_wind_y, self.gs_x, self.gs_y, facecolor='black', edgecolor='black')
+        ax.add_patch(speed_vector)
+
+        # draw dartip
+        darttip = shapely.affinity.scale(unit_dartipp, xfact=darttip_scale, yfact=darttip_scale, origin=(0,0))
+        darttip = shapely.affinity.rotate(darttip, -np.rad2deg(self.trk), origin=(0,0))
+        darttip_path = pathify(darttip)
+        darttip_patch = PathPatch(darttip_path, facecolor='black', edgecolor='black')
+        ax.add_patch(darttip_patch)
 
         plt.xlim(-v_range, v_range)
         plt.ylim(-v_range, v_range)
@@ -289,27 +325,34 @@ class SSD_entity(object):
 
         if FRV.geom_type == 'Polygon':
             path = pathify(FRV)
-            patch = PathPatch(path, facecolor='red', edgecolor='red')
+            patch = PathPatch(path, facecolor='red', edgecolor='black')
             ax.add_patch(patch)
         elif FRV.geom_type == 'MultiPolygon':
             for geom in FRV.geoms:
                 path = pathify(geom)
-                patch = PathPatch(path, facecolor='red', edgecolor='red')
+                patch = PathPatch(path, facecolor='red', edgecolor='black')
                 ax.add_patch(patch)
 
         if ARV.geom_type == 'Polygon':
             path = pathify(ARV)
-            patch = PathPatch(path, facecolor='grey', edgecolor='grey')
+            patch = PathPatch(path, facecolor='lightgrey', edgecolor='black')
             ax.add_patch(patch)
         elif ARV.geom_type == 'MultiPolygon':
             for geom in ARV.geoms:
                 path = pathify(geom)
-                patch = PathPatch(path, facecolor='grey', edgecolor='grey')
+                patch = PathPatch(path, facecolor='lightgrey', edgecolor='black')
                 ax.add_patch(patch)
 
         # draw own speed vector
         speed_vector = Arrow(self.SSD.v_wind_x, self.SSD.v_wind_y, self.gs_x, self.gs_y, facecolor='black', edgecolor='black')
         ax.add_patch(speed_vector)
+
+        # draw dartip
+        darttip = shapely.affinity.scale(unit_dartipp, xfact=darttip_scale, yfact=darttip_scale, origin=(0,0))
+        darttip = shapely.affinity.rotate(darttip, -np.rad2deg(self.trk), origin=(0,0))
+        darttip_path = pathify(darttip)
+        darttip_patch = PathPatch(darttip_path, facecolor='black', edgecolor='black')
+        ax.add_patch(darttip_patch)
 
         plt.xlim(-v_range, v_range)
         plt.ylim(-v_range, v_range)
@@ -377,10 +420,13 @@ def airspeed_to_groundsspeed(airspeed, trk, v_wind_x, v_wind_y):
 SSD = SSD(0., 0.)
 SSD.add_SSD_entity('UAV1', -100, 0, 0, 10, 20, 5)
 SSD.add_SSD_entity('UAV2', 0, 100, 270, 10, 20, 5)
+SSD.add_SSD_entity('UAV3', 50, -50, 300, 7.5, 20, 5)
+SSD.add_SSD_entity('UAV4', -50, -150, 320, 12.5, 20, 5)
 SSD.geofence.add_segment((-half_geofence_width, half_geofence_width), (-half_geofence_width, -half_geofence_width))
 SSD.geofence.add_segment((-half_geofence_width, -half_geofence_width), (half_geofence_width, -half_geofence_width))
 SSD.geofence.add_segment((half_geofence_width, -half_geofence_width), (half_geofence_width, half_geofence_width))
 SSD.geofence.add_segment((half_geofence_width, half_geofence_width), (-half_geofence_width, half_geofence_width))
+#SSD.SSD_entities['UAV1'].plot_RV()
 #SSD.SSD_entities['UAV1'].plot_VOs()
 #SSD.SSD_entities['UAV1'].plot_VOs_geofences()
 SSD.SSD_entities['UAV1'].plot_SSD()
