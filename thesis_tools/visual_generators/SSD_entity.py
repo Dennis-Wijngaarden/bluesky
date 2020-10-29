@@ -11,7 +11,7 @@ from matplotlib.patches import Arrow
 n_points_v_ring = 360 # Number of points in speed rings
 max_v = 100. # Scale diagrams to max v [m/s]
 R_PZ = 50. # Radius of protected zone [m]
-v_range = 30. # Range on the axes of a plot
+v_range = 20. # Range on the axes of a plot
 vec_x = np.array([[1], [0]])
 vec_y = np.array([[0], [1]])
 unit_dartipp = Polygon([(0., -0.5), (1., -1.), (0., 1.), (-1., -1.)]) # unit darttip
@@ -244,6 +244,7 @@ class SSD_entity(object):
 
         plt.xlim(-v_range, v_range)
         plt.ylim(-v_range, v_range)
+        plt.axis('off')
         ax.set_aspect('equal')
         plt.show()
 
@@ -275,6 +276,7 @@ class SSD_entity(object):
 
         plt.xlim(-v_range, v_range)
         plt.ylim(-v_range, v_range)
+        plt.axis('off')
         ax.set_aspect('equal')
         plt.show()
     
@@ -307,6 +309,7 @@ class SSD_entity(object):
 
         plt.xlim(-v_range, v_range)
         plt.ylim(-v_range, v_range)
+        plt.axis('off')
         ax.set_aspect('equal')
         plt.show()
 
@@ -356,6 +359,7 @@ class SSD_entity(object):
 
         plt.xlim(-v_range, v_range)
         plt.ylim(-v_range, v_range)
+        plt.axis('off')
         ax.set_aspect('equal')
         plt.show()
 
@@ -422,10 +426,10 @@ SSD.add_SSD_entity('UAV1', -100, 0, 0, 10, 20, 5)
 SSD.add_SSD_entity('UAV2', 0, 100, 270, 10, 20, 5)
 SSD.add_SSD_entity('UAV3', 50, -50, 300, 7.5, 20, 5)
 SSD.add_SSD_entity('UAV4', -50, -150, 320, 12.5, 20, 5)
-SSD.geofence.add_segment((-half_geofence_width, half_geofence_width), (-half_geofence_width, -half_geofence_width))
-SSD.geofence.add_segment((-half_geofence_width, -half_geofence_width), (half_geofence_width, -half_geofence_width))
-SSD.geofence.add_segment((half_geofence_width, -half_geofence_width), (half_geofence_width, half_geofence_width))
-SSD.geofence.add_segment((half_geofence_width, half_geofence_width), (-half_geofence_width, half_geofence_width))
+#SSD.geofence.add_segment((-half_geofence_width, half_geofence_width), (-half_geofence_width, -half_geofence_width))
+#SSD.geofence.add_segment((-half_geofence_width, -half_geofence_width), (half_geofence_width, -half_geofence_width))
+#SSD.geofence.add_segment((half_geofence_width, -half_geofence_width), (half_geofence_width, half_geofence_width))
+#SSD.geofence.add_segment((half_geofence_width, half_geofence_width), (-half_geofence_width, half_geofence_width))
 #SSD.SSD_entities['UAV1'].plot_RV()
 #SSD.SSD_entities['UAV1'].plot_VOs()
 #SSD.SSD_entities['UAV1'].plot_VOs_geofences()
