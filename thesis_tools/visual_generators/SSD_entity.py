@@ -11,11 +11,14 @@ from matplotlib.patches import Arrow
 n_points_v_ring = 360 # Number of points in speed rings
 max_v = 100. # Scale diagrams to max v [m/s]
 R_PZ = 50. # Radius of protected zone [m]
-v_range = 20. # Range on the axes of a plot
+v_range = 25. # Range on the axes of a plot
 vec_x = np.array([[1], [0]])
 vec_y = np.array([[0], [1]])
 unit_dartipp = Polygon([(0., -0.5), (1., -1.), (0., 1.), (-1., -1.)]) # unit darttip
 darttip_scale = 1.5 # default scaling of darttip
+
+unit_target_triangle = Polygon([(0., 0.), (1., 1.), (-1., 1.)])
+target_triangle_scale = 1.0 # default scaling of target symbol
 
 # Scenario specific constants
 half_geofence_width = 200. # [m]
@@ -42,6 +45,7 @@ class SSD_entity(object):
         self.x = pos_east # [m]
         self.y = pos_north # [m]
         self.trk = np.deg2rad(trk) # [rad]
+        self.hdg = np.deg2rad(trk_to_hdg(trk, airspeed, SSD.v_wind_y, SSD.v_wind_x))
         self.airspeed = airspeed # [m/s]
         self.v_max = v_max # [m/s]
         self.v_min = v_min # [None] (if RC) / [m/s] if FW
@@ -66,6 +70,30 @@ class SSD_entity(object):
         if self.v_min is not None:
             x_inner_v = x_unit_circle * self.v_min + SSD.v_wind_x
             y_inner_v = y_unit_circle * self.v_min + SSD.v_wind_y
+
+            inner_v_polygon = Polygon(list(map(tuple, np.concatenate((x_inner_v, y_inner_v)).reshape((2, n_points_v_ring)).T)))
+            RV_polygon = outer_v_polygon.difference(inner_v_polygon)
+        else:
+            RV_polygon = outer_v_polygon
+
+        return RV_polygon
+
+    def construct_RV_polygon_HDG(self):
+        # construct inner and outer speed ring coordinates
+        angles = np.linspace(0, 2. * np.pi, n_points_v_ring)
+        x_unit_circle = np.sin(angles) 
+        y_unit_circle = np.cos(angles)
+
+        # outer circle
+        x_outer_v = x_unit_circle * (self.airspeed + 0.001) + SSD.v_wind_x
+        y_outer_v = y_unit_circle * (self.airspeed + 0.001) + SSD.v_wind_y
+
+        outer_v_polygon = Polygon(list(map(tuple, np.concatenate((x_outer_v, y_outer_v)).reshape((2, n_points_v_ring)).T)))
+
+        # inner circle and construct RV
+        if self.v_min is not None:
+            x_inner_v = x_unit_circle * (self.airspeed - 0.001) + SSD.v_wind_x
+            y_inner_v = y_unit_circle * (self.airspeed - 0.001) + SSD.v_wind_y
 
             inner_v_polygon = Polygon(list(map(tuple, np.concatenate((x_inner_v, y_inner_v)).reshape((2, n_points_v_ring)).T)))
             RV_polygon = outer_v_polygon.difference(inner_v_polygon)
@@ -363,6 +391,179 @@ class SSD_entity(object):
         ax.set_aspect('equal')
         plt.show()
 
+    def plot_SSD_solution_points(self, target_trk = None):
+        # Define track in radians for DEST resolution
+        if target_trk == None:
+            target_trk = self.trk
+        else:
+            target_trk = np.deg2rad(target_trk)
+
+        fig, ax = plt.subplots()
+
+        RV_polygon = self.construct_RV_polygon()
+        RV_HDG_polygon = self.construct_RV_polygon_HDG()
+        VOs_polygon = self.construct_VOs_polygon()
+        VOs_gf_polygon = self.construct_VOs_geofence_polygon()
+
+        if VOs_gf_polygon is not None:
+            VOs_polygon = VOs_polygon.union(VOs_gf_polygon)
+
+        ARV = RV_polygon.difference(VOs_polygon)
+        FRV = RV_polygon.intersection(VOs_polygon)
+
+        if FRV.geom_type == 'Polygon':
+            path = pathify(FRV)
+            patch = PathPatch(path, facecolor='red', edgecolor='black')
+            ax.add_patch(patch)
+        elif FRV.geom_type == 'MultiPolygon':
+            for geom in FRV.geoms:
+                path = pathify(geom)
+                patch = PathPatch(path, facecolor='red', edgecolor='black')
+                ax.add_patch(patch)
+
+        if ARV.geom_type == 'Polygon':
+            path = pathify(ARV)
+            patch = PathPatch(path, facecolor='lightgrey', edgecolor='black')
+            ax.add_patch(patch)
+        elif ARV.geom_type == 'MultiPolygon':
+            for geom in ARV.geoms:
+                path = pathify(geom)
+                patch = PathPatch(path, facecolor='lightgrey', edgecolor='black')
+                ax.add_patch(patch)
+
+        # Calculate resolutions
+        # First derive ARV vertices for OPT and DEST
+        # Loop through all exteriors and append. Afterwards concatenate
+        p = []
+        q = []
+        for geom in ARV.geoms:
+            p.append(np.array(geom.exterior.coords))
+            q.append(np.diff(np.row_stack((p[-1], p[-1][0])), axis=0))
+            try:
+                p.append(np.array(geom.interior.coords))
+                q.append(np.diff(np.row_stack((p[-1], p[-1][0])), axis=0))
+            except:
+                pass
+        p = np.concatenate(p)
+        q = np.concatenate(q)
+        # Calculate squared distance between edges
+        l2 = np.sum(q ** 2, axis=1)
+        # Catch l2 == 0 (exception)
+        same = l2 < 1e-8
+        l2[same] = 1.
+
+        # Derive ARV vertices for HDG resolution strategy
+        # Loop through all exteriors and append. Afterwards concatenate
+        p_HDG = []
+        q_HDG = []
+        # Create ARV for HDG resolution strategy
+        ARV_HDG = ARV.intersection(RV_HDG_polygon)
+        for geom in ARV_HDG.geoms:
+            p_HDG.append(np.array(geom.exterior.coords))
+            q_HDG.append(np.diff(np.row_stack((p_HDG[-1], p_HDG[-1][0])), axis=0))
+            try:
+                p_HDG.append(np.array(geom.interior.coords))
+                q_HDG.append(np.diff(np.row_stack((p_HDG[-1], p_HDG[-1][0])), axis=0))
+            except:
+                pass
+        p_HDG = np.concatenate(p_HDG)
+        q_HDG = np.concatenate(q_HDG)
+        # Calculate squared distance between edges
+        l2_HDG = np.sum(q_HDG ** 2, axis=1)
+        # Catch l2 == 0 (exception)
+        same_HDG = l2_HDG < 1e-8
+        l2_HDG[same_HDG] = 1.
+
+        # calc gs to target
+        target_hdg = np.deg2rad(trk_to_hdg(np.rad2deg(target_trk), self.airspeed, self.SSD.v_wind_y, self.SSD.v_wind_x))
+        gs_x_DEST = np.sin(target_hdg) * self.airspeed + self.SSD.v_wind_x
+        gs_y_DEST = np.cos(target_hdg) * self.airspeed + self.SSD.v_wind_y
+
+        # calc resolution for each ruleset
+        # for OPT
+        # Calc t
+        t_OPT = np.sum((np.array([self.gs_x, self.gs_y]) - p) * q, axis=1) / l2
+        # Speed of boolean indices only slightly faster (negligible)
+        # t must be limited between 0 and 1
+        t_OPT = np.clip(t_OPT, 0., 1.)
+        t_OPT[same] = 0.
+        # Calculate closest point to each edge
+        x1_OPT = p[:, 0] + t_OPT * q[:, 0]
+        y1_OPT = p[:, 1] + t_OPT * q[:, 1]
+        # Get distance squared
+        d2_OPT = (x1_OPT - self.gs_x) ** 2 + (y1_OPT - self.gs_y) ** 2
+        # Sort distance
+        ind_OPT = np.argsort(d2_OPT)
+        x1_OPT = x1_OPT[ind_OPT]
+        y1_OPT = y1_OPT[ind_OPT]
+
+        # for DEST
+        # Calc t
+        t_DEST = np.sum((np.array([gs_x_DEST, gs_y_DEST]) - p) * q, axis=1) / l2
+        # Speed of boolean indices only slightly faster (negligible)
+        # t must be limited between 0 and 1
+        t_DEST = np.clip(t_DEST, 0., 1.)
+        t_DEST[same] = 0.
+        # Calculate closest point to each edge
+        x1_DEST = p[:, 0] + t_DEST * q[:, 0]
+        y1_DEST = p[:, 1] + t_DEST * q[:, 1]
+        # Get distance squared
+        d2_DEST = (x1_DEST - gs_x_DEST) ** 2 + (y1_DEST - gs_y_DEST) ** 2
+        # Sort distance
+        ind_DEST = np.argsort(d2_DEST)
+        x1_DEST = x1_DEST[ind_DEST]
+        y1_DEST = y1_DEST[ind_DEST]
+
+        # for HDG
+        # Calc t
+        t_HDG = np.sum((np.array([self.gs_x, self.gs_y]) - p_HDG) * q_HDG, axis=1) / l2_HDG
+        # Speed of boolean indices only slightly faster (negligible)
+        # t must be limited between 0 and 1
+        t_HDG = np.clip(t_HDG, 0., 1.)
+        t_HDG[same_HDG] = 0.
+        # Calculate closest point to each edge
+        x1_HDG = p_HDG[:, 0] + t_HDG * q_HDG[:, 0]
+        y1_HDG = p_HDG[:, 1] + t_HDG * q_HDG[:, 1]
+        # Get distance squared
+        d2_HDG = (x1_HDG - self.gs_x) ** 2 + (y1_HDG - self.gs_y) ** 2
+        # Sort distance
+        ind_HDG = np.argsort(d2_HDG)
+        x1_HDG = x1_HDG[ind_HDG]
+        y1_HDG = y1_HDG[ind_HDG]
+        
+        # draw own speed vector
+        speed_vector = Arrow(0., 0., float(self.gs_x), float(self.gs_y), facecolor='black', edgecolor='black')
+        ax.add_patch(speed_vector)
+
+        # draw dartip
+        darttip = shapely.affinity.scale(unit_dartipp, xfact=darttip_scale, yfact=darttip_scale, origin=(0,0))
+        darttip = shapely.affinity.rotate(darttip, -np.rad2deg(self.trk), origin=(0,0))
+        darttip_path = pathify(darttip)
+        darttip_patch = PathPatch(darttip_path, facecolor='black', edgecolor='black')
+        ax.add_patch(darttip_patch)
+
+        # draw target symbol
+        target_symbol = shapely.affinity.scale(unit_target_triangle, xfact=target_triangle_scale, yfact=target_triangle_scale, origin=(0,0))
+        target_symbol = shapely.affinity.rotate(target_symbol, -np.rad2deg(target_trk), origin=(0,0))
+        dx = self.v_max * np.sin(target_trk) + self.SSD.v_wind_x
+        dy = self.v_max * np.cos(target_trk) + self.SSD.v_wind_y
+        target_symbol = shapely.affinity.translate(target_symbol, xoff=dx, yoff=dy)
+        target_symbol_path = pathify(target_symbol)
+        target_symbol_patch = PathPatch(target_symbol_path, facecolor='blue', edgecolor='black')
+        ax.add_patch(target_symbol_patch)
+
+        plt.xlim(-v_range, v_range)
+        plt.ylim(-v_range, v_range)
+        #plt.axis('off')
+        ax.set_aspect('equal')
+
+        # plot solutions
+        plt.plot(x1_OPT[0], y1_OPT[0], 'go')
+        plt.plot(x1_DEST[0], y1_DEST[0], 'go')
+        plt.plot(x1_HDG[0], y1_HDG[0], 'go')
+
+        plt.show()
+
 def pathify(polygon):
     ''' Convert coordinates to path vertices. Objects produced by Shapely's
         analytic methods have the proper coordinate order, no need to sort.
@@ -420,6 +621,17 @@ def airspeed_to_groundsspeed(airspeed, trk, v_wind_x, v_wind_y):
             hdg_sol = solution[i][hdg]
     return gs_sol, hdg_sol
 
+def trk_to_hdg(trk, airspeed, vn_wind, ve_wind):
+    trk = np.deg2rad(trk)
+    # Calculate decrab angle (right positivive)
+    u_right = np.array([np.cos(trk + 0.5 * np.pi), np.sin(trk + 0.5 * np.pi)]) # (north, east) Unit vector right perpenidcular to track
+    wind_right = vn_wind * u_right[0] + ve_wind * u_right[1] # Wind component along u_right
+    decrab_angle = np.arcsin(-wind_right / airspeed)# to right positive
+
+    # so the hdg is the trk + decrab_angle
+    hdg = np.rad2deg((trk + decrab_angle) % (2. * np.pi))
+
+    return hdg
 
 SSD = SSD(0., 0.)
 SSD.add_SSD_entity('UAV1', -100, 0, 0, 10, 20, 5)
@@ -433,4 +645,5 @@ SSD.add_SSD_entity('UAV4', -50, -150, 320, 12.5, 20, 5)
 #SSD.SSD_entities['UAV1'].plot_RV()
 #SSD.SSD_entities['UAV1'].plot_VOs()
 #SSD.SSD_entities['UAV1'].plot_VOs_geofences()
-SSD.SSD_entities['UAV1'].plot_SSD()
+#SSD.SSD_entities['UAV1'].plot_SSD()
+SSD.SSD_entities['UAV1'].plot_SSD_solution_points(target_trk = 90.)
