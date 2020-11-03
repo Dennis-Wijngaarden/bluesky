@@ -11,7 +11,7 @@ from matplotlib.patches import Arrow
 n_points_v_ring = 360 # Number of points in speed rings
 max_v = 100. # Scale diagrams to max v [m/s]
 R_PZ = 50. # Radius of protected zone [m]
-v_range = 25. # Range on the axes of a plot
+v_range = 20. # Range on the axes of a plot
 vec_x = np.array([[1], [0]])
 vec_y = np.array([[0], [1]])
 unit_dartipp = Polygon([(0., -0.5), (1., -1.), (0., 1.), (-1., -1.)]) # unit darttip
@@ -196,6 +196,8 @@ class SSD_entity(object):
         Cy_pp = - C4 / (2. * C2)
         a2 = (-intruder.gs**2 + C2 * Cy_pp**2) / C1 + Cx_pp**2 
         b2 = (-intruder.gs**2 + C1 * Cx_pp**2) / C2 + Cy_pp**2 
+        print('a2 = ' + str(a2))
+        print('b2 = ' + str(b2))
 
         # now construct polygon based on sign of b2
         VO = None
@@ -337,7 +339,12 @@ class SSD_entity(object):
 
         plt.xlim(-v_range, v_range)
         plt.ylim(-v_range, v_range)
-        plt.axis('off')
+        #plt.axis('off')
+        plt.grid()
+        plt.xlabel('$V_{east}$', size = 20)
+        plt.ylabel('$V_{north}$', size = 20)
+        plt.xticks(size = 15)
+        plt.yticks(size = 15)
         ax.set_aspect('equal')
         plt.show()
 
@@ -554,7 +561,7 @@ class SSD_entity(object):
 
         plt.xlim(-v_range, v_range)
         plt.ylim(-v_range, v_range)
-        #plt.axis('off')
+        plt.axis('off')
         ax.set_aspect('equal')
 
         # plot solutions
@@ -633,11 +640,11 @@ def trk_to_hdg(trk, airspeed, vn_wind, ve_wind):
 
     return hdg
 
-SSD = SSD(0., 0.)
-SSD.add_SSD_entity('UAV1', -100, 0, 0, 10, 20, 5)
-SSD.add_SSD_entity('UAV2', 0, 100, 270, 10, 20, 5)
-SSD.add_SSD_entity('UAV3', 50, -50, 300, 7.5, 20, 5)
-SSD.add_SSD_entity('UAV4', -50, -150, 320, 12.5, 20, 5)
+#SSD = SSD(0., 0.)
+#SSD.add_SSD_entity('UAV1', -100, 0, 0, 10, 20, 5)
+#SSD.add_SSD_entity('UAV2', 0, 100, 270, 10, 20, 5)
+#SSD.add_SSD_entity('UAV3', 50, -50, 300, 7.5, 20, 5)
+#SSD.add_SSD_entity('UAV4', -50, -150, 320, 12.5, 20, 5)
 #SSD.geofence.add_segment((-half_geofence_width, half_geofence_width), (-half_geofence_width, -half_geofence_width))
 #SSD.geofence.add_segment((-half_geofence_width, -half_geofence_width), (half_geofence_width, -half_geofence_width))
 #SSD.geofence.add_segment((half_geofence_width, -half_geofence_width), (half_geofence_width, half_geofence_width))
@@ -646,4 +653,28 @@ SSD.add_SSD_entity('UAV4', -50, -150, 320, 12.5, 20, 5)
 #SSD.SSD_entities['UAV1'].plot_VOs()
 #SSD.SSD_entities['UAV1'].plot_VOs_geofences()
 #SSD.SSD_entities['UAV1'].plot_SSD()
-SSD.SSD_entities['UAV1'].plot_SSD_solution_points(target_trk = 90.)
+#SSD.SSD_entities['UAV1'].plot_SSD_solution_points(target_trk = 90.)
+
+###################################
+# SSD for visualisation scenarios #
+###################################
+'''
+d_geo = 150.
+p_dim = 100.
+positions = [[p_dim, 0.], [p_dim, p_dim], [0., p_dim], [-p_dim, p_dim], [-p_dim, 0.]]
+position = positions[4]
+SSD = SSD(0., 0.)
+SSD.add_SSD_entity('UAV0', 0., 0., 360., 10., 20., 5.)
+SSD.add_SSD_entity('UAV1', position[0], position[1], 270., 10., 20., 5.)
+SSD.geofence.add_segment((-d_geo, 100.), (-d_geo, -100.))
+SSD.SSD_entities['UAV0'].plot_VOs_geofences()
+'''
+
+d_geos = [10., 25., 50., 100.]
+position = [100., 100.]
+d_geo = d_geos[0]
+SSD = SSD(0., 0.)
+SSD.add_SSD_entity('UAV0', 0., 0., 360., 10., 20., 5.)
+SSD.add_SSD_entity('UAV1', position[0], position[1], 270., 10., 20., 5.)
+SSD.geofence.add_segment((-d_geo, 100.), (-d_geo, -100.))
+SSD.SSD_entities['UAV0'].plot_VOs_geofences()
